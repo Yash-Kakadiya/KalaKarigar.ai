@@ -54,7 +54,7 @@ KalaKarigar.ai/
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/KalaKarigar.ai.git
+git clone https://github.com/Yash-Kakadiya/KalaKarigar.ai.git
 cd KalaKarigar.ai
 ```
 
