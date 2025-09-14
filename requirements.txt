@@ -2,5 +2,3 @@ streamlit
 google-generativeai
 firebase-admin
 pillow
-opencv-python
-rembg

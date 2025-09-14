@@ -7,10 +7,6 @@ import json
 # and pass the model object to utility functions.
 # This avoids re-configuring it in every utility file.
 
-def generate_product_description(craft_name, region):
-    prompt = f"Write a short, creative product description for a handcrafted {craft_name} from {region}."
-    response = genai.GenerativeModel("gemini-1.5-pro").generate_content(prompt)
-    return response.text
 
 def get_gemini_response(image: Image.Image, craft_type: str, artisan_name: str):
     """
