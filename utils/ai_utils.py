@@ -21,7 +21,7 @@ def get_gemini_response(image: Image.Image, craft_type: str, artisan_name: str):
         A dictionary containing the generated content, or None if an error occurs.
     """
     # Use the configured model from Streamlit's secrets
-    model = genai.GenerativeModel("gemini-1.5-pro-latest")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
     # The prompt for Gemini
     prompt = f"""
