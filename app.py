@@ -10,11 +10,17 @@ from utils.firebase_utils import (
 )
 from utils.image_utils import generate_enhanced_image
 
-# --- ADD get_image_labels ---
 from utils.gcp_ai_utils import transcribe_audio, translate_text, get_image_labels
 from st_audiorec import st_audiorec
 import os
 from io import BytesIO
+
+from utils.gdrive_utils import (
+    get_gdrive_flow,
+    get_gdrive_service_from_code,
+    get_gdrive_service_from_session,
+    export_marketing_pack,
+)
 
 # ... (Initializations remain the same) ...
 st.set_page_config(page_title="KalaKarigar.ai", page_icon="🎨", layout="wide")
@@ -23,9 +29,9 @@ try:
     if not api_key:
         st.error("GEMINI_API_KEY not found.")
     else:
-        import google.generativeai as genai
+        from google import genai
 
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key=api_key)
 except Exception as e:
     st.error(f"Error configuring API: {e}")
 init_firebase()
@@ -53,9 +59,10 @@ if "enhanced_image" not in st.session_state:
     st.session_state.enhanced_image = None
 if "transcribed_text" not in st.session_state:
     st.session_state.transcribed_text = None
-# --- NEW STATE VARIABLES ---
 if "suggested_tags" not in st.session_state:
     st.session_state.suggested_tags = None
+if "gdrive_credentials" not in st.session_state:
+    st.session_state.gdrive_credentials = None
 
 
 def change_page(page_name):
@@ -93,6 +100,13 @@ if st.sidebar.button(
     disabled=st.session_state.product_image is None,
 ):
     change_page("Image")
+if st.sidebar.button(
+    "Step 4: Review & Export",
+    use_container_width=True,
+    type="primary" if st.session_state.page == "Export" else "secondary",
+    disabled=st.session_state.generated_content is None,
+):
+    change_page("Export")
 
 
 # --- ONBOARDING PAGE (UPDATED WITH VISION AI) ---
@@ -303,3 +317,77 @@ elif st.session_state.page == "Image":
             )
         else:
             st.info("Your new image will appear here once generated.")
+
+elif st.session_state.page == "Export":
+    st.header("✅ Step 4: Your Complete Marketing Kit")
+    st.info(
+        "Here are all your generated assets. Connect to Google Drive to export them as a complete package."
+    )
+    st.markdown("---")
+
+    # Display the content and image (same as before)
+    left_col, right_col = st.columns(2)
+    with left_col:
+        st.subheader("Final AI-Enhanced Image")
+        if st.session_state.enhanced_image:
+            st.image(st.session_state.enhanced_image, use_column_width=True)
+        else:
+            st.warning("Please generate an enhanced image in Step 3.")
+    with right_col:
+        st.subheader("Final AI-Generated Content")
+        # ... (content display logic is the same) ...
+        content = st.session_state.generated_content
+        if content:
+            export_text = f"""# KalaKarigar.ai Marketing Pack..."""  # (Same as before)
+            st.code(export_text, language="markdown")
+        else:
+            st.warning("Please generate content in Step 2.")
+
+    st.markdown("---")
+    st.subheader("🚀 Export to Google Drive")
+
+    # Check if we are already authenticated
+    if "gdrive_credentials" in st.session_state and st.session_state.gdrive_credentials:
+        st.success("✅ You are connected to Google Drive.")
+        if st.button("Export Files Now", use_container_width=True, type="primary"):
+            with st.spinner("Uploading your files..."):
+                service = get_gdrive_service_from_session()
+                # ... (export logic is the same) ...
+                folder_name = f"{st.session_state.artisan_data['craft_type']}"
+                folder_link = export_marketing_pack(
+                    service, st.session_state.enhanced_image, export_text, folder_name
+                )
+                st.success(
+                    f"Successfully exported! [View your files here]({folder_link})"
+                )
+
+    else:  # If not authenticated, start the flow
+        flow = get_gdrive_flow()
+        if flow:
+            auth_url, _ = flow.authorization_url(prompt="consent")
+            st.markdown(
+                f"""
+            **1. Authorize the App:**
+            <a href="{auth_url}" target="_blank" rel="noopener noreferrer">
+                <button style="color: white; background-color: #FF4B4B; border: none; padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer; border-radius: 8px;">
+                    Click Here to Authorize with Google
+                </button>
+            </a>
+            """,
+                unsafe_allow_html=True,
+            )
+
+            st.write("**2. Copy the code Google provides after authorization.**")
+            auth_code = st.text_input("Paste the authorization code here:")
+
+            if st.button("Finalize Connection", use_container_width=True):
+                if auth_code:
+                    with st.spinner("Connecting to your Google Drive..."):
+                        service = get_gdrive_service_from_code(flow, auth_code)
+                        if service:
+                            st.success(
+                                "Connection successful! You can now export your files."
+                            )
+                            st.rerun()  # Rerun the app to show the "Export" button
+                else:
+                    st.warning("Please paste the authorization code first.")

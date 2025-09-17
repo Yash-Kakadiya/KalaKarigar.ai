@@ -1,27 +1,18 @@
 # utils/image_utils.py
-
 import streamlit as st
 from PIL import Image
-import google.generativeai as genai
+from google import genai
 from io import BytesIO
 
 
 def generate_enhanced_image(image: Image.Image, style: str):
     """
-    Generates an enhanced image using the Gemini image generation model.
-
-    Args:
-        image: The original PIL Image object.
-        style: The desired style ("Vibrant", "Studio", "Festive").
-
-    Returns:
-        A new PIL Image object of the enhanced image, or None on failure.
+    Generates an enhanced image using the Gemini image generation model (via google.genai).
     """
     try:
-        # We use the Gemini model specified by the user
-        model = genai.GenerativeModel("gemini-2.5-flash-image-preview")
+        # Create a client each time (or you could reuse the one from app.py via st.session_state)
+        client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-        # Define style-specific prompts
         style_prompts = {
             "Vibrant": "A vibrant, professional product photograph of the subject. Enhance the colors to be more vivid and ensure the focus is sharp. The image should look bright and high-contrast, suitable for an e-commerce website.",
             "Studio": "A professional studio product shot of the subject against a clean, minimalist, light-gray background. The lighting should be soft and even, highlighting the texture and details of the craftsmanship. The final image should look elegant and high-end.",
@@ -32,28 +23,29 @@ def generate_enhanced_image(image: Image.Image, style: str):
             style, "A high-quality, professional product photograph of the subject."
         )
 
-        # Generate content using the multimodal capabilities
-        response = model.generate_content(
+        # Call the model with prompt + image
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-image-preview",
             contents=[prompt, image],
-            generation_config={"output_mime_type": "image/png"},
         )
 
-        # Extract the image data from the response
-        if response.candidates and response.candidates[0].content.parts:
-            for part in response.candidates[0].content.parts:
-                if part.inline_data and part.inline_data.mime_type == "image/png":
-                    image_data = part.inline_data.data
-                    enhanced_image = Image.open(BytesIO(image_data))
-                    return enhanced_image
+        if not response.candidates:
+            st.error("No candidates returned from Gemini.")
+            return None
 
-        st.error("Image generation failed: No image data found in the response.")
+        for part in response.candidates[0].content.parts:
+            if part.inline_data:
+                try:
+                    enhanced_image = Image.open(BytesIO(part.inline_data.data))
+                    return enhanced_image
+                except Exception as decode_err:
+                    st.error(f"Failed to decode image: {decode_err}")
+            elif part.text:
+                st.warning(f"Gemini returned text instead of image: {part.text}")
+
+        st.error("Image generation failed: No valid image data found in response.")
         return None
 
     except Exception as e:
         st.error(f"An error occurred during image generation: {e}")
-        # Add specific advice for common errors if possible
-        if "permission" in str(e).lower():
-            st.warning(
-                "Please ensure the Gemini API is enabled and your project has access to the 'gemini-2.5-flash-image-preview' model in your Google Cloud Console."
-            )
         return None

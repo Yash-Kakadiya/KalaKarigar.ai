@@ -112,3 +112,4 @@ def get_image_labels(image: Image.Image):
     except Exception as e:
         st.error(f"Cloud Vision AI Error: {e}")
         return []
+
