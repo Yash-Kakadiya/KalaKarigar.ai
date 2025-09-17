@@ -1,45 +1,42 @@
+# utils/ai_utils.py
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 import json
 
-# It's better to configure the API key once in the main app
-# and pass the model object to utility functions.
-# This avoids re-configuring it in every utility file.
 
-
-def get_gemini_response(image: Image.Image, craft_type: str, artisan_name: str):
+# --- UPDATED FUNCTION ---
+def get_gemini_response(image: Image.Image, craft_details: dict):
     """
-    Generates product description, social media captions, and hashtags from an image.
-
+    Generates marketing content from an image and detailed craft information.
     Args:
         image: A PIL Image object of the product.
-        craft_type: The type of craft (e.g., "Madhubani Painting").
-        artisan_name: The name of the artisan.
-
+        craft_details: A dictionary with artisan name, craft type, description, etc.
     Returns:
         A dictionary containing the generated content, or None if an error occurs.
     """
-    # Use the configured model from Streamlit's secrets
     model = genai.GenerativeModel("gemini-2.5-flash")
 
-    # The prompt for Gemini
+    # Build a more detailed prompt
     prompt = f"""
-    You are an expert marketing assistant for an Indian artisan named {artisan_name}. 
-    Your task is to generate a complete marketing kit based on the provided image of their {craft_type}.
+    You are an expert e-commerce marketing assistant for an Indian artisan named {craft_details.get('name', 'the artisan')}. 
+    Your task is to generate a complete marketing kit based on the provided image and the artisan's own words.
 
-    Analyze the image carefully, paying attention to colors, patterns, texture, and craftsmanship.
+    **Artisan's Input:**
+    - **Craft Type:** {craft_details.get('craft_type', 'N/A')}
+    - **Product Description:** {craft_details.get('description', 'N/A')}
+    - **Materials Used:** {craft_details.get('materials', 'N/A')}
+    - **AI-Suggested Tags:** {", ".join(craft_details.get('tags', []))}
 
-    Generate the following content in a JSON format with three keys: "product_description", "social_media_captions", and "hashtags".
+    Analyze all the provided information carefully. Generate the following content in a JSON format with three keys: "product_description", "social_media_captions", and "hashtags".
 
-    1.  **product_description**: Write one evocative and authentic paragraph (around 80-100 words). Highlight the beauty and the skill involved.
-    2.  **social_media_captions**: Create a list of 2 engaging captions for Instagram or Facebook. Use emojis and a friendly tone. Mention it's handmade by {artisan_name}.
-    3.  **hashtags**: Provide a list of 10-15 relevant hashtags, mixing general tags (e.g., #handmade) with specific ones related to the craft and Indian art.
+    1.  **product_description**: Refine the artisan's product description into an evocative and professional paragraph (around 80-100 words). Weave in some of the AI-Suggested Tags where relevant.
+    2.  **social_media_captions**: Create a list of 2 engaging captions.
+    3.  **hashtags**: Provide a list of 10-15 relevant hashtags, incorporating the AI-Suggested Tags.
     """
 
     try:
         response = model.generate_content([prompt, image])
-        # Clean up the response and parse the JSON
         cleaned_response = (
             response.text.strip().replace("```json", "").replace("```", "")
         )
