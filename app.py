@@ -80,7 +80,7 @@ def load_custom_css():
     }
     
     /* Hide Streamlit branding but keep header accessible */
-    #MainMenu {visibility: hidden;}
+    #MainMenu {visibility: ;}
     footer {visibility: hidden;}
     
     /* Custom Container Styling */
