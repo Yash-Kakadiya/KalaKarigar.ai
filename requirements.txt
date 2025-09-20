@@ -1,16 +1,28 @@
-streamlit
-google-genai
-firebase-admin
-pillow
-google-cloud-speech
+# Core Framework
+streamlit>=1.28.0
+
+# AI/ML Libraries
+google-genai>=0.5.0
+google-cloud-speech>=2.21.0
 google-cloud-translate==2.0.2
-google-cloud-storage
+google-cloud-storage>=1.1.0
+google-cloud-vision>=3.4.0
+
+# Image Processing
+pillow>=10.0.0
+
+# Audio Processing
 streamlit-audiorec
-pydub
-ffmpeg
+pydub>=0.25.1
+ffmpeg-python>=0.2.0
 
-google-cloud-vision
+# Google API
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.1.1
+google-auth-oauthlib>=1.1.0
 
-google-api-python-client
-google-auth-httplib2
-google-auth-oauthlib
+# Firebase
+firebase-admin>=6.2.0
+
+# Additional Utilities
+streamlit-cookies-manager>=0.2.0

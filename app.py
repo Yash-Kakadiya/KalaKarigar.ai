@@ -19,15 +19,66 @@ from utils.gdrive_utils import (
 )
 import time
 import base64
+import json
+from datetime import datetime, timedelta
+
+
+def encode_session_data(data):
+    """Encode session data for URL storage"""
+    json_str = json.dumps(data)
+    encoded = base64.urlsafe_b64encode(json_str.encode()).decode()
+    return encoded
+
+
+def decode_session_data(encoded_data):
+    """Decode session data from URL storage"""
+    try:
+        json_str = base64.urlsafe_b64decode(encoded_data.encode()).decode()
+        return json.loads(json_str)
+    except:
+        return None
+
+
+def save_credentials_to_url():
+    """Save credentials to URL for persistence"""
+    if st.session_state.get("gdrive_credentials") and st.session_state.get(
+        "user_profile"
+    ):
+        session_data = {
+            "creds": st.session_state.gdrive_credentials,
+            "user": st.session_state.user_profile,
+            "timestamp": datetime.now().isoformat(),
+        }
+        encoded = encode_session_data(session_data)
+        st.query_params["auth_session"] = encoded
+
+
+def restore_credentials_from_url():
+    """Restore credentials from URL"""
+    auth_session = st.query_params.get("auth_session")
+    if auth_session:
+        session_data = decode_session_data(auth_session)
+        if session_data:
+            # Check if session is not older than 24 hours
+            try:
+                timestamp = datetime.fromisoformat(session_data["timestamp"])
+                if datetime.now() - timestamp < timedelta(hours=24):
+                    st.session_state.gdrive_credentials = session_data["creds"]
+                    st.session_state.user_profile = session_data["user"]
+                    return True
+            except:
+                pass
+    return False
+
 
 # ==================== CONFIGURATION ====================
-FAVICON_PATH = "assets/favicon.png"  # Update with your actual favicon path
+FAVICON_PATH = "assets/favicon.png"
 
 st.set_page_config(
     page_title="KalaKarigar.ai - Empower Your Craft",
     page_icon=FAVICON_PATH,
     layout="wide",
-    initial_sidebar_state="collapsed",  # Start collapsed for better mobile experience
+    initial_sidebar_state="collapsed",
 )
 
 
@@ -36,277 +87,491 @@ def load_custom_css():
     st.markdown(
         """
     <style>
+    /* Import Google Fonts for better typography */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
     /* Theme Variables */
     :root {
         --primary: #667eea;
         --primary-dark: #5a67d8;
+        --primary-light: #7c8ff0;
         --secondary: #764ba2;
-        --accent: #FFE66D;
-        --success: #4CAF50;
+        --accent: #f59e0b;
+        --success: #10b981;
+        --success-dark: #059669;
+        --danger: #ef4444;
         --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        --text-primary: #1a202c;
-        --text-secondary: #4a5568;
-        --bg-primary: #FFFFFF;
-        --bg-secondary: #F7FAFC;
-        --card-bg: #FFFFFF;
-        --border-color: #E2E8F0;
-        --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-        --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --bg-gradient-hover: linear-gradient(135deg, #7c8ff0 0%, #8b5bb8 100%);
+        --neon-glow: 0 0 20px rgba(102, 126, 234, 0.5);
+        --neon-glow-strong: 0 0 30px rgba(102, 126, 234, 0.7);
+        --text-primary: #1e293b;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-tertiary: #f1f5f9;
+        --card-bg: #ffffff;
+        --border-color: #e2e8f0;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    /* Dark mode support */
+    /* Dark mode */
     @media (prefers-color-scheme: dark) {
         :root {
-            --text-primary: #F7FAFC;
-            --text-secondary: #CBD5E0;
-            --bg-primary: #0E1117;
-            --bg-secondary: #1A202C;
-            --card-bg: #2D3748;
-            --border-color: #4A5568;
-            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px 0 rgba(0, 0, 0, 0.12);
-            --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --card-bg: #1e293b;
+            --border-color: #334155;
+            --neon-glow: 0 0 25px rgba(102, 126, 234, 0.6);
+            --neon-glow-strong: 0 0 40px rgba(102, 126, 234, 0.8);
         }
     }
     
-    /* Fix toolbar z-index issue */
+    /* Global Styles */
+    * {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    
+    .stApp {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+    }
+    
+    /* Fix header z-index */
     .stApp > header {
-        z-index: 999 !important;
+        z-index: 1000 !important;
     }
     
-    /* Main container adjustments */
-    .main > div {
-        padding-top: 1rem;
-        padding-bottom: 2rem;
-    }
-    
-    /* Hide Streamlit branding but keep header accessible */
+    /* Hide Streamlit branding */
     #MainMenu {visibility: ;}
     footer {visibility: hidden;}
     
-    /* Custom Container Styling */
+    /* Main container with proper padding */
+    .main > div {
+        padding-top: 1rem;
+    }
+    
+    /* Enhanced Container */
     .main-container {
-        padding: 2rem;
         background: var(--card-bg);
-        border-radius: 12px;
-        box-shadow: var(--shadow);
-        margin: 1rem 0 2rem 0;
+        border-radius: 16px;
+        padding: 2rem;
+        margin: 1.5rem 0;
+        box-shadow: var(--shadow-lg);
         border: 1px solid var(--border-color);
+        transition: var(--transition);
+        animation: fadeInUp 0.5s ease;
     }
     
-    /* Progress Indicator Container */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Progress Container - Always Horizontal */
     .progress-container {
-        text-align: center;
+        background: var(--bg-gradient);
+        border-radius: 16px;
+        padding: 1.5rem;
         margin: 1.5rem 0 2rem 0;
-        padding: 1rem;
-        background: var(--bg-secondary);
-        border-radius: 12px;
+        box-shadow: var(--neon-glow);
+        overflow-x: auto;
+        animation: pulseGlow 3s ease-in-out infinite;
     }
     
-    .progress-inner {
-        display: inline-flex;
+    @keyframes pulseGlow {
+        0%, 100% { box-shadow: var(--neon-glow); }
+        50% { box-shadow: var(--neon-glow-strong); }
+    }
+    
+    .progress-wrapper {
+        display: flex;
+        justify-content: center;
         align-items: center;
-        gap: 0;
+        min-width: 400px;
+        padding: 0.5rem;
     }
     
     .progress-item {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.5rem;
+        position: relative;
+        z-index: 2;
     }
     
     .progress-step {
-        width: 45px;
-        height: 45px;
+        width: 50px;
+        height: 50px;
         border-radius: 50%;
-        background: #E2E8F0;
-        color: #A0AEC0;
+        background: rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+        color: rgba(255, 255, 255, 0.7);
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 600;
-        font-size: 1.1rem;
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
+        font-size: 1.2rem;
+        transition: var(--transition);
+        border: 2px solid rgba(255, 255, 255, 0.3);
     }
     
     .progress-step.active {
-        background: var(--bg-gradient);
-        color: white;
-        transform: scale(1.1);
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        background: white;
+        color: var(--primary);
+        transform: scale(1.2);
+        box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.2),
+                    0 0 20px rgba(255, 255, 255, 0.5);
     }
     
     .progress-step.completed {
         background: var(--success);
         color: white;
+        border-color: var(--success-dark);
     }
     
     .progress-label {
+        margin-top: 0.75rem;
         font-size: 0.85rem;
         font-weight: 500;
-        color: var(--text-secondary);
-    }
-    
-    .progress-label.active {
-        color: var(--primary);
-        font-weight: 600;
-    }
-    
-    .progress-label.completed {
-        color: var(--success);
+        color: white;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
     .progress-connector {
-        width: 60px;
-        height: 2px;
-        background: #E2E8F0;
-        margin: 0 -8px;
-        align-self: center;
-        margin-bottom: 1.5rem;
+        width: 80px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.3);
+        position: relative;
+        margin: 0 -15px;
+        z-index: 1;
     }
     
     .progress-connector.completed {
         background: var(--success);
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
     }
     
-    /* Card Styling */
+    /* User Profile Card */
+    .user-profile-card {
+        background: var(--bg-gradient);
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: var(--shadow-lg);
+        transition: var(--transition);
+        animation: slideInDown 0.5s ease;
+    }
+    
+    @keyframes slideInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .user-profile-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--neon-glow);
+    }
+    
+    .user-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: white;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0 auto 0.5rem;
+        box-shadow: var(--shadow);
+    }
+    
+    .user-name {
+        color: white;
+        font-weight: 500;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Enhanced Logout Button */
+    .logout-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+        width: 100%;
+        text-align: center;
+    }
+    
+    .logout-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-1px);
+    }
+    
+    /* Feature Cards with Animation */
     .feature-card {
         background: var(--card-bg);
         border-radius: 12px;
         padding: 1.5rem;
         margin: 1rem 0;
-        box-shadow: var(--shadow);
-        transition: all 0.3s ease;
         border: 1px solid var(--border-color);
+        box-shadow: var(--shadow);
+        transition: var(--transition);
+        animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
     
     .feature-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-hover);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-xl);
+        border-color: var(--primary-light);
     }
     
-    /* Button Styling */
+    .feature-card.neon {
+        border: 1px solid var(--primary);
+        box-shadow: var(--neon-glow);
+    }
+    
+    /* Enhanced Buttons */
     .stButton > button {
         background: var(--bg-gradient);
         color: white;
         border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
+        padding: 0.875rem 2rem;
+        border-radius: 10px;
         font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+        font-size: 0.95rem;
+        transition: var(--transition);
+        box-shadow: var(--shadow);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stButton > button:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.6s;
     }
     
     .stButton > button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        transform: translateY(-2px);
+        box-shadow: var(--neon-glow);
+        background: var(--bg-gradient-hover);
     }
     
-    /* Success Message Styling */
+    .stButton > button:hover:before {
+        left: 100%;
+    }
+    
+    /* Success Message with Animation */
     .success-message {
-        background: linear-gradient(135deg, #48BB78, #38A169);
+        background: linear-gradient(135deg, var(--success), var(--success-dark));
         color: white;
-        padding: 1.25rem;
+        padding: 1.5rem;
         border-radius: 12px;
-        margin: 1rem 0;
+        margin: 1.5rem 0;
         text-align: center;
+        box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
+        animation: bounceIn 0.6s ease;
     }
     
-    .success-message h3 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.5rem;
-    }
-    
-    .success-message p {
-        margin: 0;
-        opacity: 0.95;
+    @keyframes bounceIn {
+        0% { transform: scale(0); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
     }
     
     /* Logo Container */
     .logo-container {
         text-align: center;
         margin: 1rem 0;
+        animation: fadeIn 0.8s ease;
     }
     
     .logo-image {
-        max-width: 200px;
+        max-width: 120px;
         height: auto;
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
     }
     
-    /* Responsive adjustments */
+    /* Text Areas Enhancement */
+    .stTextArea textarea {
+        min-height: 150px !important;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        transition: var(--transition);
+    }
+    
+    .stTextArea textarea:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* Tab Content */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.5rem;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        background: var(--bg-tertiary);
+        transition: var(--transition);
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background: var(--primary-light);
+        color: white;
+    }
+    
+    /* Sidebar Enhancement */
+    section[data-testid="stSidebar"] {
+        background: var(--bg-secondary);
+        z-index: 999;
+    }
+    
+    section[data-testid="stSidebar"] .stButton > button {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        box-shadow: none;
+    }
+    
+    section[data-testid="stSidebar"] .stButton > button:hover {
+        background: var(--primary);
+        color: white;
+    }
+    
+    /* File Uploader Enhancement */
+    .stFileUploader > div {
+        border-radius: 10px;
+        border: 2px dashed var(--primary);
+        padding: 1rem;
+        transition: var(--transition);
+    }
+    
+    .stFileUploader > div:hover {
+        border-color: var(--primary-dark);
+        background: var(--bg-tertiary);
+    }
+    
+    /* Info Messages */
+    .stAlert {
+        border-radius: 10px;
+        border-left: 4px solid var(--primary);
+        animation: slideInLeft 0.4s ease;
+    }
+    
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    /* Responsive Design */
     @media (max-width: 768px) {
         .main-container {
-            padding: 1rem;
-            margin: 0.5rem 0 1rem 0;
+            padding: 1.25rem;
+            border-radius: 12px;
         }
         
-        .progress-inner {
-            flex-direction: column;
-            gap: 1rem;
+        .progress-container {
+            padding: 1rem;
+        }
+        
+        .progress-step {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
         }
         
         .progress-connector {
-            width: 2px;
-            height: 40px;
-            margin: -8px 0;
+            width: 60px;
         }
         
         .logo-image {
-            max-width: 150px;
-        }
-        
-        .stButton > button {
-            padding: 0.6rem 1rem;
-            font-size: 0.9rem;
+            max-width: 140px;
         }
     }
     
-    /* Fix sidebar z-index */
-    section[data-testid="stSidebar"] {
-        z-index: 998 !important;
+    /* Smooth Scrolling */
+    html {
+        scroll-behavior: smooth;
+    }
+    
+    /* Loading States */
+    .stSpinner > div {
+        border-color: var(--primary) !important;
+    }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
         background: var(--bg-secondary);
     }
     
-    /* Info boxes */
-    .stAlert {
-        border-radius: 8px;
-        border-left: 4px solid var(--primary);
+    ::-webkit-scrollbar-thumb {
+        background: var(--primary);
+        border-radius: 4px;
     }
     
-    /* Text input fields */
-    .stTextInput > div > div > input,
-    .stTextArea > div > div > textarea {
-        border-radius: 8px;
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--primary-dark);
     }
-    
-    /* User info display */
-    .user-info {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 0.75rem;
-        background: var(--bg-secondary);
-        border-radius: 12px;
+
+    /* Scroll Reset Helper */
+    .scroll-to-top {
+        scroll-behavior: smooth;
     }
-    
-    .user-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: var(--bg-gradient);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    .user-name {
-        font-size: 0.85rem;
-        color: var(--text-secondary);
-        font-weight: 500;
+
+    /* Ensure main content starts at top */
+    section.main > .block-container {
+        scroll-margin-top: 0;
     }
     </style>
     """,
@@ -315,13 +580,11 @@ def load_custom_css():
 
 
 def render_logo():
-    """Render the responsive logo with fallback"""
+    """Render the responsive logo"""
     try:
-        # Try to load desktop logo
         with open("assets/logo_desktop.png", "rb") as f:
             logo_desktop_data = base64.b64encode(f.read()).decode()
 
-        # Try to load mobile logo
         with open("assets/logo_mobile.png", "rb") as f:
             logo_mobile_data = base64.b64encode(f.read()).decode()
 
@@ -335,7 +598,7 @@ def render_logo():
                 .mobile-logo {{ display: block; margin: 0 auto; }}
             }}
             </style>
-            <div class="logo-container">
+            <div class="logo-container" style="width: 55%; margin: 0 auto;">
                 <img src="data:image/png;base64,{logo_desktop_data}" class="desktop-logo logo-image" alt="KalaKarigar.ai">
                 <img src="data:image/png;base64,{logo_mobile_data}" class="mobile-logo logo-image" alt="KalaKarigar.ai">
             </div>
@@ -343,12 +606,15 @@ def render_logo():
             unsafe_allow_html=True,
         )
     except:
-        # Fallback to text logo if images not found
         st.markdown(
             """
             <div class="logo-container">
-                <h2 style="color: var(--primary); margin: 0;">🎨 KalaKarigar.ai</h2>
-                <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">Empower Your Craft with AI</p>
+                <h2 style="background: var(--bg-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0;">
+                    🎨 KalaKarigar.ai
+                </h2>
+                <p style="color: var(--text-secondary); margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                    Empower Your Craft with AI
+                </p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -369,8 +635,6 @@ def initialize_services():
 
 # ==================== SESSION STATE MANAGEMENT ====================
 class SessionState:
-    """Centralized session state management"""
-
     @staticmethod
     def init():
         """Initialize all session state variables"""
@@ -405,12 +669,25 @@ def change_page(page_name, step_number):
     """Change page with step tracking"""
     st.session_state.page = page_name
     st.session_state.current_step = step_number
-    if step_number not in st.session_state.steps_completed:
-        st.session_state.steps_completed.append(step_number)
+    # Mark previous steps as completed when moving forward
+    if step_number > 1:
+        for i in range(1, step_number):
+            if i not in st.session_state.steps_completed:
+                st.session_state.steps_completed.append(i)
+
+    # Reset scroll position to top
+    st.markdown(
+        """
+    <script>
+    window.parent.document.querySelector('section.main').scrollTo(0, 0);
+    </script>
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_progress_indicator():
-    """Render visual progress indicator"""
+    """Render horizontal progress indicator"""
     steps = [
         ("1", "Details", 1),
         ("2", "Content", 2),
@@ -418,23 +695,23 @@ def render_progress_indicator():
         ("4", "Export", 4),
     ]
 
-    html = '<div class="progress-container"><div class="progress-inner">'
+    html = '<div class="progress-container"><div class="progress-wrapper">'
 
     for i, (num, label, step) in enumerate(steps):
         is_active = st.session_state.current_step == step
-        is_completed = step in st.session_state.steps_completed and not is_active
+        is_completed = step in st.session_state.steps_completed
 
         step_class = "active" if is_active else "completed" if is_completed else ""
-        label_class = "active" if is_active else "completed" if is_completed else ""
 
         html += f"""
         <div class="progress-item">
             <div class="progress-step {step_class}">{num}</div>
-            <div class="progress-label {label_class}">{label}</div>
+            <div class="progress-label">{label}</div>
         </div>
         """
 
         if i < len(steps) - 1:
+            # Connector is completed if the current step is completed
             connector_class = "completed" if is_completed else ""
             html += f'<div class="progress-connector {connector_class}"></div>'
 
@@ -443,137 +720,160 @@ def render_progress_indicator():
 
 
 def render_header():
-    """Render application header with user info"""
-    col1, col2, col3 = st.columns([1, 3, 1])
+    """Render application header with enhanced user info"""
+    col1, col3 = st.columns([3, 1])
 
     with col1:
+        render_logo()
+
+    with col3:
         if st.session_state.user_profile:
             name = st.session_state.user_profile["name"].split()[0]
             initial = name[0].upper()
             st.markdown(
                 f"""
-                <div class="user-info">
+                <div class="user-profile-card">
                     <div class="user-avatar">{initial}</div>
                     <div class="user-name">{name}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
+            if st.button(
+                "🚪 Logout",
+                key="logout_btn",
+                type="secondary",
+                use_container_width=True,
+            ):
+                # Clear all query params
+                for key in list(st.query_params.keys()):
+                    st.query_params.pop(key, None)
 
-    with col2:
-        render_logo()
-
-    with col3:
-        if st.session_state.user_profile:
-            if st.button("🚪 Logout", use_container_width=True):
+                # Clear all session state
                 for key in list(st.session_state.keys()):
                     del st.session_state[key]
+
                 st.rerun()
 
 
 # ==================== PAGE RENDERERS ====================
 def render_onboarding_page():
-    """Render the onboarding/details page"""
-    st.markdown('<div class="main-container">', unsafe_allow_html=True)
+    """Render the onboarding/details page with all form fields inside main-container"""
+    # Force scroll to top
+    st.markdown('<div id="top-anchor"></div>', unsafe_allow_html=True)
 
-    col1, col2 = st.columns([3, 2])
+    # st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
-    with col1:
-        st.markdown("### 📝 Product Information")
+    # Product Information Section
+    st.markdown("### 📝 Product Information")
 
-        data = st.session_state.artisan_data
+    data = st.session_state.artisan_data
 
-        # Craft Type
-        data["craft_type"] = st.text_input(
-            "🏺 **Craft Name**",
-            value=data["craft_type"],
-            placeholder="e.g., Bandhani Saree, Pottery, Jewelry",
-            help="Enter the name of your craft or product",
+    # Craft Type
+    data["craft_type"] = st.text_input(
+        "🏺 **Craft Name**",
+        value=data["craft_type"],
+        placeholder="e.g., Bandhani Saree, Pottery, Jewelry",
+        help="Enter the name of your craft or product",
+    )
+
+    # Voice Recording Section
+    with st.expander("🎤 **Record Product Description** (Optional)", expanded=False):
+        lang_options = {
+            "English": "en-US",
+            "हिन्दी (Hindi)": "hi-IN",
+            "ગુજરાતી (Gujarati)": "gu-IN",
+        }
+
+        col_a, col_b = st.columns([1, 2])
+        with col_a:
+            selected_lang = st.selectbox("Language:", options=list(lang_options.keys()))
+        with col_b:
+            st.info("Record in your preferred language")
+
+        # Improved audio recorder UI with instructions and loading indicator
+        st.markdown(
+            """
+            <div style="margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.95rem;">
+                <ul style="margin: 0; padding-left: 1.2rem;">
+                    <li>Click <b>Start Recording</b> and speak clearly.</li>
+                    <li>Click <b>Stop</b> when done.</li>
+                    <li>Transcribe or translate below.</li>
+                </ul>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-        # Voice Recording Section
-        with st.expander(
-            "🎤 **Record Product Description** (Optional)", expanded=False
-        ):
-            lang_options = {
-                "English": "en-US",
-                "हिन्दी (Hindi)": "hi-IN",
-                "ગુજરાતી (Gujarati)": "gu-IN",
-            }
-
-            col_a, col_b = st.columns([1, 2])
-            with col_a:
-                selected_lang = st.selectbox(
-                    "Language:", options=list(lang_options.keys())
-                )
-            with col_b:
-                st.info("Record in your preferred language")
-
+        # Show spinner while audio controls are loading
+        with st.spinner("Loading audio recorder..."):
             audio = st_audiorec()
 
-            if audio:
-                col_1, col_2 = st.columns(2)
-                with col_1:
+        if audio:
+            col_1, col_2 = st.columns(2)
+            with col_1:
+                if st.button(
+                    "📝 Transcribe Audio", type="secondary", use_container_width=True
+                ):
+                    with st.spinner("Transcribing..."):
+                        transcribed = transcribe_audio(
+                            audio, lang_options[selected_lang]
+                        )
+                        if transcribed:
+                            st.session_state.transcribed_text = transcribed
+                            st.success("✅ Transcription complete!")
+                            if not data["description"]:
+                                data["description"] = transcribed
+
+            with col_2:
+                if st.session_state.transcribed_text and selected_lang != "English":
                     if st.button(
-                        "📝 Transcribe Audio",
+                        "🌐 Translate to English",
                         type="secondary",
                         use_container_width=True,
                     ):
-                        with st.spinner("Transcribing..."):
-                            transcribed = transcribe_audio(
-                                audio, lang_options[selected_lang]
+                        with st.spinner("Translating..."):
+                            translated = translate_text(
+                                st.session_state.transcribed_text, "en"
                             )
-                            if transcribed:
-                                st.session_state.transcribed_text = transcribed
-                                st.success("✅ Transcription complete!")
-                                if not data["description"]:
-                                    data["description"] = transcribed
+                            if translated:
+                                data["description"] = translated
+                                st.success("✅ Translation added!")
 
-                with col_2:
-                    if st.session_state.transcribed_text and selected_lang != "English":
-                        if st.button(
-                            "🌐 Translate to English",
-                            type="secondary",
-                            use_container_width=True,
-                        ):
-                            with st.spinner("Translating..."):
-                                translated = translate_text(
-                                    st.session_state.transcribed_text, "en"
-                                )
-                                if translated:
-                                    data["description"] = translated
-                                    st.success("✅ Translation added!")
+    # Text Fields
+    data["description"] = st.text_area(
+        "📋 **Product Description**",
+        height=120,
+        value=data["description"],
+        placeholder="Describe your product in detail...",
+        help="Provide a detailed description",
+    )
 
-        # Text Fields
-        data["description"] = st.text_area(
-            "📋 **Product Description**",
-            height=120,
-            value=data["description"],
-            placeholder="Describe your product in detail...",
-            help="Provide a detailed description",
+    col_m1, col_m2 = st.columns(2)
+    with col_m1:
+        data["materials"] = st.text_input(
+            "🧵 **Materials Used**",
+            value=data["materials"],
+            placeholder="e.g., Cotton, Silk, Clay",
+            help="Materials used in your craft",
+        )
+    with col_m2:
+        data["dimensions"] = st.text_input(
+            "📏 **Dimensions** (Optional)",
+            value=data["dimensions"],
+            placeholder="e.g., 6x9 feet",
+            help="Size/dimensions of product",
         )
 
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
-            data["materials"] = st.text_input(
-                "🧵 **Materials Used**",
-                value=data["materials"],
-                placeholder="e.g., Cotton, Silk, Clay",
-                help="Materials used in your craft",
-            )
-        with col_m2:
-            data["dimensions"] = st.text_input(
-                "📏 **Dimensions** (Optional)",
-                value=data["dimensions"],
-                placeholder="e.g., 6x9 feet",
-                help="Size/dimensions of product",
-            )
+    # Product Image Section (Below other fields)
+    st.markdown("---")
+    st.markdown("### 🖼️ Product Image")
 
-    with col2:
-        st.markdown("### 🖼️ Product Image")
+    col_img1, col_img2 = st.columns([1, 1])
 
+    with col_img1:
         uploaded_file = st.file_uploader(
-            "Upload a clear photo",
+            "Upload a clear photo of your product",
             type=["jpg", "png", "jpeg"],
             help="Best results with well-lit, clear images",
         )
@@ -583,273 +883,363 @@ def render_onboarding_page():
                 st.session_state.product_image is None
                 or uploaded_file.name != st.session_state.uploaded_file_name
             ):
+                # Read the bytes of the uploaded file first
+                image_bytes = uploaded_file.getvalue()
 
-                st.session_state.product_image = Image.open(uploaded_file)
+                # Open the image from bytes for display and other non-cached uses
+                st.session_state.product_image = Image.open(BytesIO(image_bytes))
                 st.session_state.uploaded_file_name = uploaded_file.name
 
-                with st.spinner("🔍 Analyzing image..."):
-                    st.session_state.suggested_tags = get_image_labels(
-                        st.session_state.product_image
-                    )
+                with st.spinner("🔍 Analyzing image with AI..."):
+                    # ✅ Pass the HASHABLE raw bytes to the cached function
+                    st.session_state.suggested_tags = get_image_labels(image_bytes)
                     time.sleep(0.5)
 
+    with col_img2:
         if st.session_state.product_image:
             st.image(
                 st.session_state.product_image,
-                use_column_width=True,
+                use_container_width=True,
                 caption="Your Product",
             )
 
             if st.session_state.suggested_tags:
                 st.markdown("#### 🏷️ AI-Suggested Tags")
                 data["tags"] = st.multiselect(
-                    "Select relevant tags:",
+                    "Select relevant tags for better marketing:",
                     options=st.session_state.suggested_tags,
                     default=st.session_state.suggested_tags[:5],
-                    help="These help with marketing",
+                    help="These tags help with searchability",
                 )
-
-    st.markdown("</div>", unsafe_allow_html=True)
+        else:
+            st.info("👈 Upload an image to see preview and get AI-suggested tags")
 
     # Action Button
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
     col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
     with col_btn2:
         if st.button(
-            "💾 Save & Continue →",
+            "💾 Save & Continue to Content →",
             type="primary",
             use_container_width=True,
             disabled=not (data["craft_type"] and st.session_state.product_image),
         ):
             if validate_onboarding_data():
-                with st.spinner("Saving..."):
+                with st.spinner("Saving your information..."):
                     save_onboarding_data()
-                    st.success("✅ Saved successfully!")
+                    st.success("✅ Information saved successfully!")
                     time.sleep(1)
                     change_page("Content", 2)
                     st.rerun()
 
+    # st.markdown("</div>", unsafe_allow_html=True)
+
 
 def render_content_page():
     """Render the AI content generation page"""
-    st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
-    col1, col2 = st.columns([2, 3])
+    # Force scroll to top
+    st.markdown('<div id="top-anchor"></div>', unsafe_allow_html=True)
 
-    with col1:
-        st.markdown("### 🖼️ Your Product")
+    # st.markdown('<div class="main-container">', unsafe_allow_html=True)
+
+    # Product Details Card
+    st.markdown("### 📋 Product Overview")
+    col_detail1, col_detail2 = st.columns([1, 2])
+
+    with col_detail1:
         if st.session_state.product_image:
-            st.image(st.session_state.product_image, use_column_width=True)
+            st.image(
+                st.session_state.product_image,
+                use_container_width=True,
+                caption="Your Product",
+            )
 
-        st.markdown("### 📋 Details")
+    with col_detail2:
         st.markdown(
             f"""
-            <div class="feature-card">
-                <strong>🏺 Craft:</strong> {st.session_state.artisan_data['craft_type']}<br>
-                <strong>📝 Description:</strong> {st.session_state.artisan_data['description'][:100]}...<br>
-                <strong>🧵 Materials:</strong> {st.session_state.artisan_data['materials']}
+            <div class="feature-card neon">
+                <h4 style="margin-top: 0;">🏺 {st.session_state.artisan_data['craft_type']}</h4>
+                <p><strong>📝 Description:</strong> {st.session_state.artisan_data['description'][:150]}...</p>
+                <p><strong>🧵 Materials:</strong> {st.session_state.artisan_data['materials']}</p>
+                <p><strong>📏 Dimensions:</strong> {st.session_state.artisan_data.get('dimensions', 'Not specified')}</p>
+                <p><strong>🏷️ Tags:</strong> {', '.join(st.session_state.artisan_data.get('tags', [])[:5])}</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
+    st.markdown("---")
+
+    # Generate Content Button
+    col_gen1, col_gen2, col_gen3 = st.columns([1, 2, 1])
+    with col_gen2:
         if st.button(
-            "✨ Generate Marketing Content", type="primary", use_container_width=True
+            "✨ Generate Marketing Content with AI",
+            type="primary",
+            use_container_width=True,
         ):
-            with st.spinner("Creating content..."):
+            with st.spinner("🤖 AI is creating compelling content..."):
                 progress_bar = st.progress(0)
                 for i in range(100):
                     time.sleep(0.02)
                     progress_bar.progress(i + 1)
 
+                # ✅ Convert the PIL image to bytes before passing to the cached function
+                buffered = BytesIO()
+                st.session_state.product_image.save(buffered, format="PNG")
+                image_bytes = buffered.getvalue()
+
                 st.session_state.generated_content = get_gemini_response(
-                    st.session_state.product_image, st.session_state.artisan_data
+                    image_bytes, st.session_state.artisan_data
                 )
+
                 if st.session_state.generated_content:
                     st.balloons()
-                    st.success("✅ Content generated!")
+                    st.success("🎉 Content generated successfully!")
+                    time.sleep(0.5)
+                    st.rerun()
 
-    with col2:
-        st.markdown("### 📱 Marketing Content")
+    # Generated Content Display
+    if st.session_state.generated_content:
+        st.markdown("### 📱 Generated Marketing Content")
 
-        if st.session_state.generated_content:
-            content = st.session_state.generated_content
+        content = st.session_state.generated_content
 
-            # Product Description
-            st.markdown("#### 📝 Enhanced Description")
-            st.markdown(
-                f"""<div class="feature-card">{content.get('product_description', 'Not available.')}</div>""",
-                unsafe_allow_html=True,
-            )
-
-            # Social Media Captions
-            st.markdown("#### 💬 Social Media Captions")
-            captions = content.get("social_media_captions", [])
-            if captions:
-                tabs = st.tabs([f"Caption {i+1}" for i in range(len(captions))])
-                for i, (tab, caption) in enumerate(zip(tabs, captions)):
-                    with tab:
-                        st.text_area("", caption, height=100, key=f"caption_{i}")
-
-            # Hashtags
-            hashtags = content.get("hashtags", [])
-            if hashtags:
-                st.markdown("#### #️⃣ Hashtags")
-                st.code(" ".join(f"#{tag}" for tag in hashtags), language=None)
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button(
-                "Continue to Enhancement →", type="primary", use_container_width=True
-            ):
-                change_page("Image", 3)
-                st.rerun()
-        else:
-            st.info("👈 Click 'Generate Marketing Content' to start")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_image_page():
-    """Render the AI image enhancement page"""
-    st.markdown('<div class="main-container">', unsafe_allow_html=True)
-
-    st.markdown("### 🎨 AI-Powered Image Enhancement")
-    st.info("Choose a style to enhance your product image")
-
-    # Style Selection
-    cols = st.columns(3)
-    styles = [
-        ("🎨 Vibrant", "Enhanced colors and contrast", "Vibrant"),
-        ("📸 Studio", "Professional studio lighting", "Studio"),
-        ("✨ Festive", "Warm, celebratory atmosphere", "Festive"),
-    ]
-
-    for col, (title, desc, style_name) in zip(cols, styles):
-        with col:
-            st.markdown(
-                f"""
-                <div class="feature-card" style="text-align: center; min-height: 120px;">
-                    <h4>{title}</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary);">{desc}</p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            if st.button(
-                f"Apply {style_name}", use_container_width=True, key=style_name.lower()
-            ):
-                enhance_image(style_name)
-
-    # Image Comparison
-    st.markdown("<hr style='margin: 2rem 0;'>", unsafe_allow_html=True)
-
-    col_img1, col_img2 = st.columns(2)
-
-    with col_img1:
-        st.markdown("#### 📷 Original")
-        if st.session_state.product_image:
-            st.image(st.session_state.product_image, use_column_width=True)
-
-    with col_img2:
-        st.markdown("#### ✨ Enhanced")
-        if st.session_state.enhanced_image:
-            st.image(st.session_state.enhanced_image, use_column_width=True)
-
-            buffered = BytesIO()
-            st.session_state.enhanced_image.save(buffered, format="PNG")
-
-            st.download_button(
-                label="⬇️ Download Enhanced Image",
-                data=buffered.getvalue(),
-                file_name=f"enhanced_{st.session_state.artisan_data['craft_type'].replace(' ', '_')}.png",
-                mime="image/png",
-                use_container_width=True,
-            )
-
-            if st.button(
-                "Continue to Export →", type="primary", use_container_width=True
-            ):
-                change_page("Export", 4)
-                st.rerun()
-        else:
-            st.info("Select a style above to enhance")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_export_page():
-    """Render the final export page"""
-    st.markdown('<div class="main-container">', unsafe_allow_html=True)
-
-    # Success Message
-    st.markdown(
-        """
-        <div class="success-message">
-            <h3>🎉 Congratulations!</h3>
-            <p>Your Marketing Pack is Ready</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Preview Section
-    col1, col2 = st.columns([1, 1])
-
-    with col1:
-        st.markdown("#### 📦 Package Contents")
+        # Enhanced Product Description
+        st.markdown("#### 📝 Enhanced Product Description")
         st.markdown(
-            """
-            <div class="feature-card">
-                ✅ Enhanced product image<br>
-                ✅ Professional description<br>
-                ✅ Social media captions<br>
-                ✅ Relevant hashtags<br>
-                ✅ Marketing optimized content
+            f"""
+            <div class="feature-card" style="background: var(--bg-tertiary);">
+                {content.get('product_description', 'Not available.')}
             </div>
             """,
             unsafe_allow_html=True,
         )
 
+        # Social Media Captions with increased height
+        st.markdown("#### 💬 Social Media Captions")
+        captions = content.get("social_media_captions", [])
+        if captions:
+            tabs = st.tabs([f"📱 Caption {i+1}" for i in range(len(captions))])
+            for i, (tab, caption) in enumerate(zip(tabs, captions)):
+                with tab:
+                    st.text_area(
+                        "Ready to copy and paste:",
+                        caption,
+                        height=180,  # Increased height
+                        key=f"caption_{i}",
+                        help="Click to select all text, then copy",
+                    )
+
+        # Hashtags
+        hashtags = content.get("hashtags", [])
+        if hashtags:
+            st.markdown("#### #️⃣ Trending Hashtags")
+            hashtag_text = " ".join(f"{tag}" for tag in hashtags)
+            st.code(hashtag_text, language=None)
+
+        # Continue Button
+        st.markdown("---")
+        col_cont1, col_cont2, col_cont3 = st.columns([1, 2, 1])
+        with col_cont2:
+            if st.button(
+                "🎨 Continue to Image Enhancement →",
+                type="primary",
+                use_container_width=True,
+            ):
+                change_page("Image", 3)
+                st.rerun()
+    else:
+        st.info(
+            "👆 Click the button above to generate AI-powered marketing content for your product"
+        )
+
+    # st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_image_page():
+    """Render the AI image enhancement page"""
+
+    # Force scroll to top
+    st.markdown('<div id="top-anchor"></div>', unsafe_allow_html=True)
+
+    # st.markdown('<div class="main-container">', unsafe_allow_html=True)
+
+    st.markdown("### 🎨 AI-Powered Image Enhancement")
+    st.info("✨ Choose a style to transform your product image with AI magic")
+
+    # Style Selection with better cards
+    cols = st.columns(3)
+    styles = [
+        (
+            "🎨",
+            "Vibrant",
+            "Enhanced colors and contrast for eye-catching appeal",
+            "Vibrant",
+        ),
+        (
+            "📸",
+            "Studio",
+            "Professional studio lighting with clean background",
+            "Studio",
+        ),
+        (
+            "✨",
+            "Festive",
+            "Warm, celebratory atmosphere perfect for occasions",
+            "Festive",
+        ),
+    ]
+
+    for col, (icon, title, desc, style_name) in zip(cols, styles):
+        with col:
+            st.markdown(
+                f"""
+                <div class="feature-card" style="text-align: center; min-height: 180px; cursor: pointer;">
+                    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">{icon}</div>
+                    <h4 style="color: var(--primary); margin: 0.5rem 0;">{title}</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0.5rem 0;">{desc}</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button(
+                f"Apply {title} Style", use_container_width=True, key=style_name.lower()
+            ):
+                enhance_image(style_name)
+
+    # Image Comparison
+    st.markdown("---")
+    st.markdown("### 🖼️ Image Comparison")
+
+    col_img1, col_img2 = st.columns(2)
+
+    with col_img1:
+        st.markdown("#### 📷 Original Image")
+        if st.session_state.product_image:
+            st.image(st.session_state.product_image, use_container_width=True)
+        else:
+            st.info("No image uploaded")
+
+    with col_img2:
+        st.markdown("#### ✨ Enhanced Image")
         if st.session_state.enhanced_image:
-            st.markdown("#### 🖼️ Final Image")
-            st.image(st.session_state.enhanced_image, use_column_width=True)
+            st.image(st.session_state.enhanced_image, use_container_width=True)
 
-    with col2:
-        st.markdown("#### 📤 Export Options")
+            # Download and Continue
+            st.markdown("---")
+            buffered = BytesIO()
+            st.session_state.enhanced_image.save(buffered, format="PNG")
 
+            col_d1, col_d2 = st.columns(2)
+            with col_d1:
+                st.download_button(
+                    label="⬇️ Download Enhanced",
+                    data=buffered.getvalue(),
+                    file_name=f"enhanced_{st.session_state.artisan_data['craft_type'].replace(' ', '_')}.png",
+                    mime="image/png",
+                    use_container_width=True,
+                )
+            with col_d2:
+                if st.button(
+                    "📤 Continue to Export →", type="primary", use_container_width=True
+                ):
+                    change_page("Export", 4)
+                    st.rerun()
+        else:
+            st.info("👆 Select a style above to enhance your image")
+
+    # st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_export_page():
+    """Render the final export page"""
+
+    # Force scroll to top
+    st.markdown('<div id="top-anchor"></div>', unsafe_allow_html=True)
+
+    # st.markdown('<div class="main-container">', unsafe_allow_html=True)
+
+    # Success Message
+    st.markdown(
+        """
+        <div class="success-message">
+            <h2 style="margin: 0;">🎉 Congratulations!</h2>
+            <p style="font-size: 1.1rem; margin-top: 0.5rem;">Your Marketing Pack is Ready for Export</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Package Overview
+    st.markdown("### 📦 Your Complete Marketing Package")
+
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        # Package Contents
         st.markdown(
             """
-            <div class="feature-card">
+            <div class="feature-card neon">
+                <h4 style="margin-top: 0;">✅ Package Includes:</h4>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li>✨ AI-Enhanced product image</li>
+                    <li>📝 Professional product description</li>
+                    <li>💬 Ready-to-use social media captions</li>
+                    <li>🏷️ Trending hashtags for visibility</li>
+                    <li>📊 Complete product details</li>
+                </ul>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Quick Stats
+        if st.session_state.generated_content:
+            content = st.session_state.generated_content
+            st.markdown(
+                f"""
+                <div class="feature-card">
+                    <h4 style="margin-top: 0;">📊 Content Stats</h4>
+                    <p><strong>Product:</strong> {st.session_state.artisan_data['craft_type']}</p>
+                    <p><strong>Captions Generated:</strong> {len(content.get('social_media_captions', []))}</p>
+                    <p><strong>Hashtags Created:</strong> {len(content.get('hashtags', []))}</p>
+                    <p><strong>Enhancement:</strong> AI-Powered</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    with col2:
+        # Final Image Preview
+        if st.session_state.enhanced_image:
+            st.markdown("#### 🖼️ Your Enhanced Product Image")
+            st.image(st.session_state.enhanced_image, use_container_width=True)
+
+    # Export Section
+    st.markdown("---")
+    st.markdown("### 📤 Export Your Marketing Pack")
+
+    col_exp1, col_exp2, col_exp3 = st.columns([1, 2, 1])
+    with col_exp2:
+        st.markdown(
+            """
+            <div class="feature-card" style="text-align: center; background: var(--bg-tertiary);">
                 <h4>📁 Google Drive Export</h4>
-                <p>Save your marketing pack to Google Drive for easy access and sharing.</p>
+                <p>Save your complete marketing package to Google Drive for easy access, sharing, and future use.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
         if st.button(
-            "🚀 Export to Google Drive", type="primary", use_container_width=True
+            "🚀 Export to Google Drive Now", type="primary", use_container_width=True
         ):
             export_to_drive()
 
-        # Quick Stats
-        st.markdown("#### 📊 Quick Stats")
-        if st.session_state.generated_content:
-            content = st.session_state.generated_content
-            st.markdown(
-                f"""
-                <div class="feature-card">
-                    <strong>Product:</strong> {st.session_state.artisan_data['craft_type']}<br>
-                    <strong>Captions:</strong> {len(content.get('social_media_captions', []))}<br>
-                    <strong>Hashtags:</strong> {len(content.get('hashtags', []))}<br>
-                    <strong>Status:</strong> Ready to Export
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-    # New Project Button
-    st.markdown("<hr style='margin: 2rem 0;'>", unsafe_allow_html=True)
+    # New Project
+    st.markdown("---")
     col_new1, col_new2, col_new3 = st.columns([1, 2, 1])
     with col_new2:
         if st.button("📝 Start New Project", use_container_width=True):
@@ -857,7 +1247,7 @@ def render_export_page():
             change_page("Onboarding", 1)
             st.rerun()
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    # st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ==================== UTILITY FUNCTIONS ====================
@@ -865,10 +1255,10 @@ def validate_onboarding_data():
     """Validate onboarding form data"""
     data = st.session_state.artisan_data
     if not data["craft_type"]:
-        st.error("Please enter your craft type")
+        st.error("❌ Please enter your craft type")
         return False
     if not st.session_state.product_image:
-        st.error("Please upload a product image")
+        st.error("❌ Please upload a product image")
         return False
     return True
 
@@ -879,7 +1269,6 @@ def save_onboarding_data():
     data["name"] = st.session_state.user_profile["name"]
     data["user_email"] = st.session_state.user_profile["email"]
 
-    # Upload image
     buffered = BytesIO()
     st.session_state.product_image.save(buffered, format="JPEG")
     image_url = upload_image_to_storage(
@@ -887,34 +1276,38 @@ def save_onboarding_data():
     )
     data["product_image_url"] = image_url
 
-    # Save to Firestore
     save_artisan_data(data)
 
 
 def enhance_image(style):
     """Enhance image with selected style"""
-    with st.spinner(f"Applying {style} style... 🎨"):
+    with st.spinner(f"🎨 Applying {style} style with AI magic..."):
         progress_bar = st.progress(0)
         for i in range(100):
             time.sleep(0.01)
             progress_bar.progress(i + 1)
 
-        st.session_state.enhanced_image = generate_enhanced_image(
-            st.session_state.product_image, style
-        )
+        # ✅ Convert the PIL image to bytes before passing to the cached function
+        buffered = BytesIO()
+        st.session_state.product_image.save(buffered, format="PNG")
+        image_bytes = buffered.getvalue()
+
+        st.session_state.enhanced_image = generate_enhanced_image(image_bytes, style)
         if st.session_state.enhanced_image:
-            st.success(f"✨ {style} style applied!")
+            st.success(f"✨ {style} style applied successfully!")
             time.sleep(0.5)
             st.rerun()
+        else:
+            st.error("❌ Failed to enhance image. Please try again.")
 
 
 def export_to_drive():
     """Export marketing pack to Google Drive"""
     if not st.session_state.enhanced_image or not st.session_state.generated_content:
-        st.error("Please complete all steps before exporting")
+        st.error("❌ Please complete all steps before exporting")
         return
 
-    with st.spinner("Uploading to Google Drive..."):
+    with st.spinner("☁️ Uploading to Google Drive..."):
         progress_bar = st.progress(0)
         for i in range(100):
             time.sleep(0.01)
@@ -923,7 +1316,6 @@ def export_to_drive():
         service = get_gdrive_service_from_session()
         content = st.session_state.generated_content
 
-        # Format export text
         export_text = f"""
 # KalaKarigar.ai Marketing Pack
 Generated for: {st.session_state.user_profile['name']}
@@ -932,7 +1324,7 @@ Date: {time.strftime('%Y-%m-%d %H:%M')}
 
 ---
 
-## Product Description
+## Enhanced Product Description
 {content.get('product_description', 'N/A')}
 
 ## Social Media Captions
@@ -957,9 +1349,24 @@ Date: {time.strftime('%Y-%m-%d %H:%M')}
             service, st.session_state.enhanced_image, export_text, folder_name
         )
 
-        st.balloons()
-        st.success("🎉 Successfully exported to Google Drive!")
-        st.markdown(f"[📁 Open in Google Drive]({folder_link})")
+        # ✅ Check if the folder_link is valid before showing success
+        if folder_link:
+            st.balloons()
+            st.success("🎉 Successfully exported to Google Drive!")
+            st.markdown(
+                f"""
+                <div class="success-message">
+                    <p style="margin: 0;">Your marketing pack has been saved!</p>
+                    <a href="{folder_link}" target="_blank" style="color: white; text-decoration: underline;">
+                        📁 Open in Google Drive
+                    </a>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            # This 'else' block is optional but good practice
+            st.error("❌ Export failed. Please check the logs or try again.")
 
 
 def reset_project_state():
@@ -984,21 +1391,30 @@ def reset_project_state():
 # ==================== MAIN APPLICATION ====================
 def main():
     """Main application entry point"""
-    # Load custom CSS
     load_custom_css()
-
-    # Initialize session state
     SessionState.init()
 
-    # Initialize services
+    # # Debug info (remove this later)
+    # if st.sidebar.button("Debug Session"):
+    #     st.sidebar.write("Session State Keys:", list(st.session_state.keys()))
+    #     st.sidebar.write("Query Params:", dict(st.query_params))
+    #     st.sidebar.write(
+    #         "Has Credentials:", bool(st.session_state.get("gdrive_credentials"))
+    #     )
+    #     st.sidebar.write(
+    #         "Has User Profile:", bool(st.session_state.get("user_profile"))
+    #     )
+
+    # First, try to restore session from URL
+    session_restored = restore_credentials_from_url()
+
     if not initialize_services():
         st.stop()
 
-    # Handle Google OAuth
     flow = get_gdrive_flow()
     auth_code = st.query_params.get("code")
 
-    # Process OAuth callback
+    # Handle OAuth callback
     if auth_code and not st.session_state.gdrive_credentials:
         try:
             with st.spinner("🔐 Authenticating..."):
@@ -1012,40 +1428,46 @@ def main():
                     "client_secret": creds.client_secret,
                     "scopes": creds.scopes,
                 }
-                st.query_params.clear()
+                # Get user profile
+                st.session_state.user_profile = get_user_info()
+
+                # Save to URL for persistence
+                save_credentials_to_url()
+
+                # Clear the auth code but keep session
+                st.query_params.pop("code", None)
                 st.rerun()
         except Exception as e:
-            st.error(f"❌ Authentication failed: {e}")
+            st.error(f"Authentication failed: {e}")
             st.stop()
 
-    # Check authentication
+    # Show appropriate interface
     if not st.session_state.gdrive_credentials:
         render_login_page(flow)
     else:
-        # Fetch user profile if needed
+        # Ensure user profile is loaded
         if not st.session_state.user_profile:
             with st.spinner("Loading your profile..."):
                 st.session_state.user_profile = get_user_info()
+                save_credentials_to_url()  # Update URL with profile
                 st.rerun()
 
-        # Render main application
         render_main_app()
 
 
 def render_login_page(flow):
     """Render the login page"""
-    # Load custom CSS for login page
     load_custom_css()
 
-    # Logo
     render_logo()
 
-    # Login content
     st.markdown(
         """
         <div style="max-width: 600px; margin: 2rem auto; text-align: center;">
-            <h3 style="color: var(--text-primary); margin-bottom: 2rem;">Empower Your Craft with AI</h3>
-            <div class="feature-card" style="text-align: left; margin: 2rem 0;">
+            <h3 style="color: var(--text-primary); margin-bottom: 2rem;">
+                Empower Your Craft with AI
+            </h3>
+            <div class="feature-card neon" style="text-align: left; margin: 2rem 0;">
                 <h4>Welcome, Artisan! 👋</h4>
                 <p>Transform your handmade products into professional marketing materials:</p>
                 <ul style="text-align: left; margin-top: 1rem;">
@@ -1053,6 +1475,7 @@ def render_login_page(flow):
                     <li>✍️ Professional product descriptions</li>
                     <li>📱 Social media ready content</li>
                     <li>🏷️ Smart hashtag generation</li>
+                    <li>☁️ Google Drive integration</li>
                 </ul>
             </div>
         </div>
@@ -1060,47 +1483,78 @@ def render_login_page(flow):
         unsafe_allow_html=True,
     )
 
-    # Login button
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if flow:
             auth_url, _ = flow.authorization_url(prompt="consent")
-            st.markdown(
-                f"""
-                <div style="text-align: center; margin-top: 2rem;">
-                    <a href="{auth_url}" style="
-                        display: inline-block;
-                        background: var(--bg-gradient);
-                        color: white;
-                        padding: 1rem 2rem;
-                        border-radius: 8px;
-                        text-decoration: none;
-                        font-weight: 600;
-                        box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
-                        transition: all 0.3s ease;
-                    ">🔐 Login with Google</a>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            # st.markdown(
+            #     f"""
+            #     <div style="text-align: center; margin-top: 2rem;">
+            #         <a href="{auth_url}" style="
+            #             display: inline-block;
+            #             background: var(--bg-gradient);
+            #             color: white;
+            #             padding: 1rem 2.5rem;
+            #             border-radius: 10px;
+            #             text-decoration: none;
+            #             font-weight: 600;
+            #             font-size: 1.1rem;
+            #             box-shadow: var(--shadow-lg);
+            #             transition: var(--transition);
+            #         " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--neon-glow)';"
+            #            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow-lg)';">
+            #             🔐 Login with Google
+            #         </a>
+            #     </div>
+            #     """,
+            #     unsafe_allow_html=True,
+            # )
+            if st.button(
+                "🔐 Login with Google",
+                type="primary",
+                use_container_width=True,
+                key="google_login_btn",
+            ):
+                st.markdown(
+                    f'<meta http-equiv="refresh" content="0; url={auth_url}">',
+                    unsafe_allow_html=True,
+                )
+                st.rerun()
 
 
 def render_main_app():
     """Render the main application interface"""
-    # Header
     render_header()
-
-    # Progress Indicator
     render_progress_indicator()
 
-    # Sidebar Navigation
+    # Reset scroll on page load
+    st.markdown(
+        """
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        window.parent.document.querySelector('section.main').scrollTo(0, 0);
+    });
+    </script>
+    """,
+        unsafe_allow_html=True,
+    )
+
+    # Enhanced Sidebar Navigation
     with st.sidebar:
-        st.markdown("### 🧭 Navigation")
+        st.markdown(
+            """
+            <div style="text-align: center; padding: 1rem; background: var(--bg-gradient); 
+                        border-radius: 10px; margin-bottom: 1rem;">
+                <h3 style="color: white; margin: 0;">🧭 Navigation</h3>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         nav_buttons = [
             ("📝 Step 1: Details", "Onboarding", 1, True),
             (
-                "✍️ Step 2: Content",
+                "✏️ Step 2: Content",
                 "Content",
                 2,
                 st.session_state.product_image is not None,
@@ -1120,32 +1574,60 @@ def render_main_app():
         ]
 
         for label, page, step, enabled in nav_buttons:
+            # Determine button state and styling
+            is_current = st.session_state.page == page
+            is_completed = step in st.session_state.steps_completed
+
+            # Custom styling based on state
+            if is_current:
+                # Current step - highlighted
+                st.markdown(
+                    f"""
+                <style>
+                .stButton > button[key="nav_{page}_{step}"] {{
+                    background: var(--primary) !important;
+                    color: white !important;
+                    border: 2px solid var(--primary-light) !important;
+                    box-shadow: var(--neon-glow) !important;
+                    transform: translateX(5px) !important;
+                }}
+                </style>
+                """,
+                    unsafe_allow_html=True,
+                )
+            elif is_completed:
+                # Completed step - success styling
+                st.markdown(
+                    f"""
+                <style>
+                .stButton > button[key="nav_{page}_{step}"] {{
+                    background: var(--success) !important;
+                    color: white !important;
+                    border: 1px solid var(--success-dark) !important;
+                }}
+                </style>
+                """,
+                    unsafe_allow_html=True,
+                )
+
+            # Add completion indicator to label
+            if is_completed and not is_current:
+                label = f"✅ {label}"
+            elif is_current:
+                label = f"▶️ {label}"
+
+            button_type = "primary" if is_current else "secondary"
+
             if st.button(
                 label,
                 use_container_width=True,
                 disabled=not enabled,
-                type="primary" if st.session_state.page == page else "secondary",
+                type=button_type,
+                key=f"nav_{page}_{step}",
             ):
                 change_page(page, step)
                 st.rerun()
-
-        # Help Section
-        st.markdown("---")
-        with st.expander("💡 Need Help?"):
-            st.markdown(
-                """
-                **Quick Tips:**
-                - Take clear, well-lit photos
-                - Provide detailed descriptions
-                - Select relevant tags
-                - Try different image styles
-                
-                **Support:**
-                support@kalakarigar.ai
-                """
-            )
-
-    # Page Content
+    # Page Content Rendering
     if st.session_state.page == "Onboarding":
         render_onboarding_page()
     elif st.session_state.page == "Content":

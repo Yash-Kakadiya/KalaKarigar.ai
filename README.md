@@ -1,78 +1,186 @@
 # 🎨 KalaKarigar.ai
 
-*Empowering Local Artisans with AI*
+*Empowering Indian Artisans with AI-Powered Marketing Tools*
 
-[![Hackathon](https://img.shields.io/badge/Hackathon-GenAI%20Exchange-blue)](#)
 [![Made with Streamlit](https://img.shields.io/badge/Made%20with-Streamlit-FF4B4B)](https://streamlit.io/)
-[![Google Cloud](https://img.shields.io/badge/Powered%20by-Google%20Cloud-yellow)](https://cloud.google.com/)
+[![Google Cloud](https://img.shields.io/badge/Powered%20by-Google%20Cloud-4285F4)](https://cloud.google.com/)
+[![Firebase](https://img.shields.io/badge/Database-Firebase-FFA611)](https://firebase.google.com/)
+[![Gemini AI](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-blue)](https://ai.google.dev/)
 
 ---
 
-## ✨ Vision
+## 🌟 Vision
 
-**KalaKarigar.ai** leverages **Google’s Generative AI** to empower Indian craftsmen by automating content creation, enhancing product imagery, and enabling them to build a digital presence — without needing technical expertise.
-
----
-
-## 🎯 Features (MVP)
-
-* **👤 Onboarding:** Simple artisan profile setup (Name, Craft type, Product image).
-* **📝 AI Content Generator:** Gemini-powered product descriptions, captions & hashtags.
-* **🎨 Image Enhancement Presets:** Vibrant 🎨 | Studio 🖼️ | Festive ✨.
-* **🌐 Deployment:** Hosted on **Google Cloud Run** with optional custom domain **kalakarigar.ai**.
+**KalaKarigar.ai** is a comprehensive AI-powered platform designed to bridge the digital divide for Indian artisans. By leveraging cutting-edge generative AI technologies, we enable craftspeople to create professional marketing content, enhance product imagery, and build a strong digital presence without requiring technical expertise.
 
 ---
 
-## 🏗️ Tech Stack
+## ✨ Complete Feature Set
 
-* **Frontend:** [Streamlit](https://streamlit.io/) (Python)
-* **Backend & AI:** [Gemini 2.5 Pro](https://ai.google.dev/) via Google AI Studio / Vertex AI
-* **Image Processing:** rembg, OpenCV, Pillow
-* **Storage:** Firebase (images & artisan data)
-* **Deployment:** Google Cloud Run
+### 📝 **Step 1: Product Details & Voice Input**
+- **Multi-language Voice Recording**: Support for English, Hindi, and Gujarati
+- **AI Transcription**: Google Cloud Speech-to-Text with automatic language detection
+- **Smart Translation**: Seamless translation to English for global reach
+- **AI Tag Generation**: Google Cloud Vision AI analyzes product images for automatic tagging
+- **Product Information Capture**: Craft type, materials, dimensions, and detailed descriptions
+
+### 🤖 **Step 2: AI Content Generation**
+- **Enhanced Product Descriptions**: Gemini 2.5 Flash creates compelling, professional descriptions
+- **Social Media Captions**: Multiple ready-to-use captions optimized for different platforms
+- **Trending Hashtags**: AI-generated hashtags incorporating product analysis and trends
+- **Multi-format Output**: Content optimized for Instagram, Facebook, WhatsApp Business
+
+### 🎨 **Step 3: AI Image Enhancement**
+- **Vibrant Style**: Enhanced colors and contrast for eye-catching appeal
+- **Studio Style**: Professional studio lighting with clean backgrounds
+- **Festive Style**: Warm, celebratory atmosphere for cultural products
+- **Fallback Processing**: PIL-based enhancement when AI services are unavailable
+- **Image Optimization**: Automatic resizing and quality optimization
+
+### ☁️ **Step 4: Google Drive Integration**
+- **One-Click Export**: Complete marketing pack exported to organized Google Drive folders
+- **Structured Organization**: Automatic folder creation with timestamps and metadata
+- **Multiple File Formats**: Enhanced images (PNG) and marketing content (TXT)
+- **Easy Sharing**: Direct Google Drive links for instant access and sharing
+
+### 🔐 **Authentication & Security**
+- **Google OAuth Integration**: Secure login with Google accounts
+- **Session Persistence**: Users stay logged in across browser sessions
+- **User Profile Management**: Automatic user information retrieval
+- **Secure Credential Handling**: Industry-standard OAuth 2.0 implementation
 
 ---
 
-## 📂 Project Structure
+## 🏗️ Advanced Tech Stack
+
+### **Frontend & UI**
+- **Streamlit**: Modern web application framework with custom CSS theming
+- **Responsive Design**: Mobile-friendly interface with adaptive layouts
+- **Progressive Enhancement**: Works across all devices and screen sizes
+
+### **AI & Machine Learning**
+- **Gemini 2.5 Flash**: Advanced text and image generation
+- **Google Cloud Speech-to-Text**: Multi-language voice transcription
+- **Google Cloud Translation**: Seamless language translation
+- **Google Cloud Vision AI**: Intelligent image analysis and tagging
+
+### **Backend & Storage**
+- **Firebase Admin SDK**: Scalable NoSQL database for artisan data
+- **Firebase Storage**: Secure cloud storage for product images
+- **Google Drive API**: Seamless integration for content export
+
+### **Audio Processing**
+- **Streamlit AudioRec**: Real-time voice recording
+- **Pydub**: Audio format conversion and optimization
+- **FFmpeg**: Advanced audio processing capabilities
+
+### **Image Processing**
+- **Pillow (PIL)**: Comprehensive image manipulation
+- **Advanced Optimization**: Multiple quality settings and format support
+- **Fallback Systems**: Reliable image processing when AI is unavailable
+
+---
+
+## 📂 Project Architecture
 
 ```
 KalaKarigar.ai/
-│── app.py                 # Streamlit main app
-│── requirements.txt       # Dependencies
-│── utils/
-│    ├── ai_utils.py       # Gemini API functions
-│    ├── image_utils.py    # Image enhancement presets
-│── assets/
-│    ├── logo.png          # Team logo
-│── README.md              # Project overview
+├── app.py                          # Main Streamlit application with UI/UX
+├── requirements.txt                # Python dependencies
+├── .streamlit/
+│   └── secrets.toml               # Configuration secrets
+├── utils/
+│   ├── ai_utils.py                # Gemini AI integration with caching
+│   ├── firebase_utils.py          # Firebase operations with retry logic
+│   ├── gcp_ai_utils.py           # Google Cloud AI services
+│   ├── gdrive_utils.py           # Google Drive integration
+│   └── image_utils.py            # Image enhancement with fallback
+├── assets/
+│   ├── logo_desktop.png          # Desktop logo
+│   ├── logo_mobile.png           # Mobile responsive logo
+│   └── favicon.png               # Application favicon
+└── README.md                     # This file
 ```
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Quick Start Guide
 
-### 1. Clone the repo
+### 1. **Clone the Repository**
 
 ```bash
 git clone https://github.com/Yash-Kakadiya/KalaKarigar.ai.git
 cd KalaKarigar.ai
 ```
 
-### 2. Install dependencies
+### 2. **Install Dependencies**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Set up environment
+### 3. **Configure Secrets**
 
-Create a `.env` file with your Gemini API key:
+Create `.streamlit/secrets.toml` with the following structure:
 
+```toml
+# Gemini AI API Key
+GEMINI_API_KEY = "your_gemini_api_key"
+
+# Firebase Configuration
+[firebase_credentials]
+type = "service_account"
+project_id = "your_project_id"
+private_key_id = "your_private_key_id"
+private_key = "your_private_key"
+client_email = "your_client_email"
+client_id = "your_client_id"
+auth_uri = "https://accounts.google.com/o/oauth2/auth"
+token_uri = "https://oauth2.googleapis.com/token"
+auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
+client_x509_cert_url = "your_cert_url"
+
+# Google Cloud Platform Service Account
+[gcp_service_account]
+type = "service_account"
+project_id = "your_project_id"
+private_key_id = "your_private_key_id"
+private_key = "your_private_key"
+client_email = "your_client_email"
+client_id = "your_client_id"
+auth_uri = "https://accounts.google.com/o/oauth2/auth"
+token_uri = "https://oauth2.googleapis.com/token"
+auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
+client_x509_cert_url = "your_cert_url"
+
+# Google Drive OAuth Credentials
+[gdrive_oauth_credentials]
+client_id = "your_oauth_client_id"
+client_secret = "your_oauth_client_secret"
+auth_uri = "https://accounts.google.com/o/oauth2/auth"
+token_uri = "https://oauth2.googleapis.com/token"
+redirect_uris = ["your_redirect_uri"]
 ```
-GEMINI_API_KEY=your_api_key_here
-```
 
-### 4. Run the app locally
+### 4. **Required Google Cloud APIs**
+
+Enable the following APIs in your Google Cloud Console:
+- **Gemini AI API** (or Vertex AI API)
+- **Cloud Speech-to-Text API**
+- **Cloud Translation API**
+- **Cloud Vision API**
+- **Google Drive API**
+- **People API**
+
+### 5. **Firebase Setup**
+
+1. Create a new Firebase project
+2. Enable Firestore Database
+3. Enable Firebase Storage
+4. Generate service account credentials
+5. Add credentials to `secrets.toml`
+
+### 6. **Run Locally**
 
 ```bash
 streamlit run app.py
@@ -80,38 +188,154 @@ streamlit run app.py
 
 ---
 
-## 🚀 Deployment
+## 🚀 Deployment Options
 
-* Will be deployed on **Google Cloud Run**.
-* Optional custom domain: **kalakarigar.ai**.
+### **Streamlit Cloud** (Recommended)
+1. Fork the repository
+2. Connect to Streamlit Cloud
+3. Add secrets through the Streamlit Cloud interface
+4. Deploy with one click
+
+### **Google Cloud Run**
+```bash
+# Build and deploy
+gcloud run deploy kalakarigar-ai \
+  --source . \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated
+```
+
+### **Local Docker**
+```bash
+# Build Docker image
+docker build -t kalakarigar-ai .
+
+# Run container
+docker run -p 8501:8501 kalakarigar-ai
+```
 
 ---
 
-## 📦 Deliverables (Hackathon Submission)
+## 🎯 User Journey
 
-* ✅ Working prototype link (Cloud Run / kalakarigar.ai)
-* ✅ Public GitHub repo
-* ✅ 3-min demo video
-* ✅ Pitch deck
-
----
-
-## 👨‍💻 Team
-
-**KalaKarigar.ai** – Solo project by Yash (student participant).
+1. **🔐 Secure Login**: Google OAuth authentication with persistent sessions
+2. **📝 Product Input**: Voice recording in native language or text input
+3. **🤖 AI Processing**: Automatic transcription, translation, and content generation
+4. **🎨 Image Enhancement**: Choose from AI-powered styling options
+5. **☁️ Export**: One-click export to organized Google Drive folders
+6. **📱 Share**: Ready-to-use content for all social media platforms
 
 ---
 
-## 🔮 Future Roadmap
+## 🔧 Advanced Features
 
-The MVP focuses on onboarding, AI content generation, and image enhancement. Beyond the hackathon, KalaKarigar.ai can be expanded into a comprehensive platform for artisans:
+### **Performance Optimizations**
+- **Caching**: Streamlit caching for API calls and expensive operations
+- **Lazy Loading**: Services initialized only when needed
+- **Retry Logic**: Automatic retry for network operations with exponential backoff
+- **Fallback Systems**: Graceful degradation when AI services are unavailable
 
-* **🌍 Multi-Language Support:** Add regional languages (Hindi, Tamil, Gujarati, Bengali, etc.) for inclusivity.
-* **📊 Analytics Dashboard:** Provide artisans with insights into customer engagement, trending products, and market demand.
-* **🛒 E-commerce Integration:** Allow direct sales through KalaKarigar.ai with payment gateway support.
-* **🤝 Community Features:** Create artisan communities for collaboration, sharing tips, and mentorship.
-* **📸 Advanced Image AI:** Integrate AI-driven background generation, virtual staging, and AR previews.
-* **🎥 Video Content Generation:** Help artisans create short promotional videos for platforms like Instagram Reels and YouTube Shorts.
-* **🔗 Marketplace Partnerships:** Integrate with established platforms (Etsy, Amazon Karigar) for extended reach.
+### **Error Handling & Monitoring**
+- **Comprehensive Logging**: Detailed logging for debugging and monitoring
+- **Health Checks**: Built-in health monitoring for all services
+- **Graceful Failures**: User-friendly error messages with recovery suggestions
+- **Validation**: Input validation and content quality checks
 
-This roadmap highlights KalaKarigar.ai’s potential to grow into a sustainable ecosystem, ensuring India’s traditional crafts thrive in the digital era.
+### **Accessibility & UX**
+- **Responsive Design**: Works seamlessly across all devices
+- **Multi-language Support**: Voice input in regional languages
+- **Progress Indicators**: Clear step-by-step progress tracking
+- **Intuitive Navigation**: Simple, artisan-friendly interface
+
+---
+
+## 📊 API Usage & Limits
+
+- **Gemini AI**: Rate limited per project quota
+- **Google Cloud Speech**: 60 minutes/month free tier
+- **Google Cloud Vision**: 1,000 requests/month free tier
+- **Google Cloud Translation**: 500,000 characters/month free tier
+- **Firebase**: Generous free tier with pay-as-you-grow pricing
+
+---
+
+## 🔮 Roadmap & Future Enhancements
+
+### **Phase 1: Core Platform** ✅
+- Multi-language voice input and AI content generation
+- Image enhancement and Google Drive integration
+- Secure authentication and session management
+
+### **Phase 2: Advanced Features** 🔄
+- **Batch Processing**: Handle multiple products simultaneously
+- **Template System**: Customizable content templates
+- **Analytics Dashboard**: Track content performance and engagement
+- **Advanced Image Editing**: More sophisticated image manipulation tools
+
+### **Phase 3: Ecosystem Expansion** 📋
+- **E-commerce Integration**: Direct integration with major marketplaces
+- **Community Features**: Artisan networking and collaboration tools
+- **Mobile App**: Native iOS and Android applications
+- **Marketplace**: Built-in selling platform with payment processing
+
+### **Phase 4: Scale & Sustainability** 📋
+- **Multi-tenant Architecture**: Support for craft organizations
+- **Advanced Analytics**: Market insights and trend analysis
+- **API Platform**: Third-party developer ecosystem
+- **International Expansion**: Support for artisans globally
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions from the community! Please read our contributing guidelines and submit pull requests for any improvements.
+
+### **Development Setup**
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes with proper testing
+4. Submit a pull request with detailed description
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👨‍💻 Creator
+
+**Yash Kakadiya**
+- 🌐 GitHub: [@Yash-Kakadiya](https://github.com/Yash-Kakadiya)
+- 💼 LinkedIn: [Yash Kakadiya](https://linkedin.com/in/yash-kakadiya)
+- 📧 Email: yashkakadiya.dev@gmail.com
+
+---
+
+## 🙏 Acknowledgments
+
+- **Google Cloud Platform** for providing robust AI and cloud services
+- **Streamlit** for the excellent web app framework
+- **Firebase** for scalable backend infrastructure
+- **Indian Artisan Community** for inspiration and feedback
+
+---
+
+## 📞 Support
+
+For support, feature requests, or bug reports:
+- 🐛 **Issues**: [GitHub Issues](https://github.com/Yash-Kakadiya/KalaKarigar.ai/issues)
+- 📧 **Email**: support@kalakarigar.ai
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/Yash-Kakadiya/KalaKarigar.ai/discussions)
+
+---
+
+<div align="center">
+
+**Made with ❤️ for Indian Artisans**
+
+*Preserving Traditional Crafts in the Digital Age*
+
+</div>
