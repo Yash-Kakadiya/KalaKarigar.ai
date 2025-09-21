@@ -1,4 +1,6 @@
 # utils/gdrive_utils.py
+import os
+import json
 import streamlit as st
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -12,7 +14,6 @@ import logging
 from typing import Dict, Optional, List, Any, Tuple
 import time
 from datetime import datetime
-import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -49,30 +50,47 @@ class GoogleDriveManager:
     def _create_flow(self) -> Optional[InstalledAppFlow]:
         """Create OAuth flow from configuration."""
         try:
-            creds = st.secrets["gdrive_oauth_credentials"]
-            firebase_creds = st.secrets["firebase_credentials"]
+            flat_creds = {}
+            # --- THIS IS THE FIX ---
+            # This logic now handles both the deployed JSON and your local flat TOML file.
+            creds_json_str = os.getenv("GDRIVE_OAUTH_CREDENTIALS")
+            if creds_json_str:
+                # On Cloud Run, the secret is the full JSON, so we get the nested 'web' dict
+                flat_creds = json.loads(creds_json_str)["web"]
+            else:
+                # Locally, we read your simple, flat structure directly
+                flat_creds = st.secrets["gdrive_oauth_credentials"]
 
+            firebase_creds_json_str = os.getenv("FIREBASE_CREDENTIALS")
+            if firebase_creds_json_str:
+                firebase_creds = json.loads(firebase_creds_json_str)
+            else:
+                firebase_creds = st.secrets["firebase_credentials"]
+
+            # Now, we build the nested dictionary that the Google library requires
             client_config = {
                 "web": {
-                    "client_id": creds["client_id"],
+                    "client_id": flat_creds["client_id"],
                     "project_id": firebase_creds["project_id"],
-                    "auth_uri": creds["auth_uri"],
-                    "token_uri": creds["token_uri"],
+                    "auth_uri": flat_creds["auth_uri"],
+                    "token_uri": flat_creds["token_uri"],
                     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                    "client_secret": creds["client_secret"],
-                    "redirect_uris": creds["redirect_uris"],
+                    "client_secret": flat_creds["client_secret"],
+                    "redirect_uris": flat_creds["redirect_uris"],
                 }
             }
+            # --- END FIX ---
 
             flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-            flow.redirect_uri = creds["redirect_uris"][0]
+            flow.redirect_uri = flat_creds["redirect_uris"][0]
 
             logger.info("Google Drive OAuth flow created successfully")
             return flow
-
         except KeyError as e:
-            logger.error(f"Missing Google Drive configuration key: {e}")
-            st.error(f"Google Drive configuration error: Missing {e}")
+            logger.error(f"Missing key in credentials configuration: {e}")
+            st.error(
+                f"Credential configuration error: Missing key {e}. Please check your secrets."
+            )
             return None
         except Exception as e:
             logger.error(f"Failed to create OAuth flow: {e}")

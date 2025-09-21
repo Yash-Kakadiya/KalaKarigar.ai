@@ -71,6 +71,72 @@ def restore_credentials_from_url():
     return False
 
 
+def scroll_to_top():
+    """Force scroll to top using JavaScript"""
+    js_code = """
+    <script>
+    setTimeout(function() {
+        window.parent.document.querySelector('.main').scrollTop = 0;
+        window.parent.document.documentElement.scrollTop = 0;
+        window.parent.document.body.scrollTop = 0;
+    }, 100);
+    </script>
+    """
+    st.components.v1.html(js_code, height=0)
+
+
+def render_scroll_to_top_button():
+    """Render fixed scroll to top button"""
+    st.markdown(
+        """
+        <div id="scroll-to-top-container">
+            <button class="scroll-to-top-btn" id="scrollToTopBtn" onclick="scrollToTop()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="18,15 12,9 6,15"></polyline>
+                </svg>
+            </button>
+        </div>
+
+        <script>
+        function scrollToTop() {
+            const mainElement = window.parent.document.querySelector('.main');
+            if (mainElement) {
+                mainElement.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            window.parent.document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+            window.parent.document.body.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleScrollButton() {
+            const scrollBtn = document.getElementById('scrollToTopBtn');
+            if (!scrollBtn) return;
+            
+            const mainElement = window.parent.document.querySelector('.main');
+            const scrollTop = mainElement ? mainElement.scrollTop : 
+                             (window.parent.document.documentElement.scrollTop || window.parent.document.body.scrollTop);
+            
+            if (scrollTop > 300) {
+                scrollBtn.classList.add('visible');
+            } else {
+                scrollBtn.classList.remove('visible');
+            }
+        }
+
+        // Set up scroll listener
+        setTimeout(function() {
+            const mainElement = window.parent.document.querySelector('.main');
+            if (mainElement) {
+                mainElement.addEventListener('scroll', toggleScrollButton);
+            }
+            window.parent.addEventListener('scroll', toggleScrollButton);
+            toggleScrollButton(); // Initial check
+        }, 500);
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 # ==================== CONFIGURATION ====================
 FAVICON_PATH = "assets/favicon.png"
 
@@ -151,7 +217,7 @@ def load_custom_css():
     }
     
     /* Hide Streamlit branding */
-    #MainMenu {visibility: ;}
+    #MainMenu {visibility: ;} 
     footer {visibility: hidden;}
     
     /* Main container with proper padding */
@@ -264,6 +330,55 @@ def load_custom_css():
     .progress-connector.completed {
         background: var(--success);
         box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+    
+    /* Scroll to Top Button */
+    #scroll-to-top-container {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 1001;
+    }
+    
+    .scroll-to-top-btn {
+        width: 50px;
+        height: 50px;
+        background: var(--bg-gradient);
+        border: none;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: var(--shadow-lg);
+        color: white;
+        font-size: 1.2rem;
+        font-weight: bold;
+        transition: var(--transition);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(20px);
+    }
+    
+    .scroll-to-top-btn.visible {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    
+    .scroll-to-top-btn:hover {
+        transform: translateY(-3px) scale(1.1);
+        box-shadow: var(--neon-glow);
+        background: var(--bg-gradient-hover);
+    }
+    
+    .scroll-to-top-btn:active {
+        transform: translateY(-1px) scale(1.05);
+    }
+    
+    .scroll-to-top-btn svg {
+        width: 20px;
+        height: 20px;
     }
     
     /* User Profile Card */
@@ -533,6 +648,18 @@ def load_custom_css():
         .logo-image {
             max-width: 140px;
         }
+        
+        .scroll-to-top-btn {
+            bottom: 20px;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+        }
+        
+        .scroll-to-top-btn svg {
+            width: 20px;
+            height: 20px;
+        }
     }
     
     /* Smooth Scrolling */
@@ -573,6 +700,29 @@ def load_custom_css():
     section.main > .block-container {
         scroll-margin-top: 0;
     }
+    
+    /* Force scroll to top on page changes */
+    .main .block-container {
+        animation: scrollToTop 0.1s ease-out;
+    }
+
+    @keyframes scrollToTop {
+        0% {
+            transform: translateY(0);
+        }
+        1% {
+            transform: translateY(-10px);
+        }
+        100% {
+            transform: translateY(0);
+        }
+    }
+
+    /* Ensure content starts from top */
+    .stApp > .main {
+        scroll-behavior: auto;
+    }
+
     </style>
     """,
         unsafe_allow_html=True,
@@ -666,7 +816,7 @@ class SessionState:
 
 # ==================== HELPER FUNCTIONS ====================
 def change_page(page_name, step_number):
-    """Change page with step tracking"""
+    """Change page with step tracking and scroll to top"""
     st.session_state.page = page_name
     st.session_state.current_step = step_number
     # Mark previous steps as completed when moving forward
@@ -675,15 +825,8 @@ def change_page(page_name, step_number):
             if i not in st.session_state.steps_completed:
                 st.session_state.steps_completed.append(i)
 
-    # Reset scroll position to top
-    st.markdown(
-        """
-    <script>
-    window.parent.document.querySelector('section.main').scrollTo(0, 0);
-    </script>
-    """,
-        unsafe_allow_html=True,
-    )
+    # Set a flag to trigger scroll after rerun
+    st.session_state.should_scroll_to_top = True
 
 
 def render_progress_indicator():
@@ -759,13 +902,9 @@ def render_header():
 # ==================== PAGE RENDERERS ====================
 def render_onboarding_page():
     """Render the onboarding/details page with all form fields inside main-container"""
-    # Force scroll to top
-    st.markdown('<div id="top-anchor"></div>', unsafe_allow_html=True)
-
-    # st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
     # Product Information Section
-    st.markdown("### 📝 Product Information")
+    st.markdown("### 📋 Product Information")
 
     data = st.session_state.artisan_data
 
@@ -813,7 +952,9 @@ def render_onboarding_page():
             col_1, col_2 = st.columns(2)
             with col_1:
                 if st.button(
-                    "📝 Transcribe Audio", type="secondary", use_container_width=True
+                    "📝 Transcribe Audio",
+                    type="secondary",
+                    use_container_width=True,
                 ):
                     with st.spinner("Transcribing..."):
                         transcribed = transcribe_audio(
@@ -828,7 +969,7 @@ def render_onboarding_page():
             with col_2:
                 if st.session_state.transcribed_text and selected_lang != "English":
                     if st.button(
-                        "🌐 Translate to English",
+                        "🌍 Translate to English",
                         type="secondary",
                         use_container_width=True,
                     ):
@@ -932,16 +1073,9 @@ def render_onboarding_page():
                     change_page("Content", 2)
                     st.rerun()
 
-    # st.markdown("</div>", unsafe_allow_html=True)
-
 
 def render_content_page():
     """Render the AI content generation page"""
-
-    # Force scroll to top
-    st.markdown('<div id="top-anchor"></div>', unsafe_allow_html=True)
-
-    # st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
     # Product Details Card
     st.markdown("### 📋 Product Overview")
@@ -1055,16 +1189,9 @@ def render_content_page():
             "👆 Click the button above to generate AI-powered marketing content for your product"
         )
 
-    # st.markdown("</div>", unsafe_allow_html=True)
-
 
 def render_image_page():
     """Render the AI image enhancement page"""
-
-    # Force scroll to top
-    st.markdown('<div id="top-anchor"></div>', unsafe_allow_html=True)
-
-    # st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
     st.markdown("### 🎨 AI-Powered Image Enhancement")
     st.info("✨ Choose a style to transform your product image with AI magic")
@@ -1105,7 +1232,9 @@ def render_image_page():
                 unsafe_allow_html=True,
             )
             if st.button(
-                f"Apply {title} Style", use_container_width=True, key=style_name.lower()
+                f"Apply {title} Style",
+                use_container_width=True,
+                key=style_name.lower(),
             ):
                 enhance_image(style_name)
 
@@ -1143,23 +1272,18 @@ def render_image_page():
                 )
             with col_d2:
                 if st.button(
-                    "📤 Continue to Export →", type="primary", use_container_width=True
+                    "📤 Continue to Export →",
+                    type="primary",
+                    use_container_width=True,
                 ):
                     change_page("Export", 4)
                     st.rerun()
         else:
             st.info("👆 Select a style above to enhance your image")
 
-    # st.markdown("</div>", unsafe_allow_html=True)
-
 
 def render_export_page():
     """Render the final export page"""
-
-    # Force scroll to top
-    st.markdown('<div id="top-anchor"></div>', unsafe_allow_html=True)
-
-    # st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
     # Success Message
     st.markdown(
@@ -1234,7 +1358,9 @@ def render_export_page():
         )
 
         if st.button(
-            "🚀 Export to Google Drive Now", type="primary", use_container_width=True
+            "🚀 Export to Google Drive Now",
+            type="primary",
+            use_container_width=True,
         ):
             export_to_drive()
 
@@ -1242,12 +1368,10 @@ def render_export_page():
     st.markdown("---")
     col_new1, col_new2, col_new3 = st.columns([1, 2, 1])
     with col_new2:
-        if st.button("📝 Start New Project", use_container_width=True):
+        if st.button("🔄 Start New Project", use_container_width=True):
             reset_project_state()
             change_page("Onboarding", 1)
             st.rerun()
-
-    # st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ==================== UTILITY FUNCTIONS ====================
@@ -1394,17 +1518,6 @@ def main():
     load_custom_css()
     SessionState.init()
 
-    # # Debug info (remove this later)
-    # if st.sidebar.button("Debug Session"):
-    #     st.sidebar.write("Session State Keys:", list(st.session_state.keys()))
-    #     st.sidebar.write("Query Params:", dict(st.query_params))
-    #     st.sidebar.write(
-    #         "Has Credentials:", bool(st.session_state.get("gdrive_credentials"))
-    #     )
-    #     st.sidebar.write(
-    #         "Has User Profile:", bool(st.session_state.get("user_profile"))
-    #     )
-
     # First, try to restore session from URL
     session_restored = restore_credentials_from_url()
 
@@ -1472,7 +1585,7 @@ def render_login_page(flow):
                 <p>Transform your handmade products into professional marketing materials:</p>
                 <ul style="text-align: left; margin-top: 1rem;">
                     <li>📸 AI-enhanced product photography</li>
-                    <li>✍️ Professional product descriptions</li>
+                    <li>✏️ Professional product descriptions</li>
                     <li>📱 Social media ready content</li>
                     <li>🏷️ Smart hashtag generation</li>
                     <li>☁️ Google Drive integration</li>
@@ -1487,28 +1600,6 @@ def render_login_page(flow):
     with col2:
         if flow:
             auth_url, _ = flow.authorization_url(prompt="consent")
-            # st.markdown(
-            #     f"""
-            #     <div style="text-align: center; margin-top: 2rem;">
-            #         <a href="{auth_url}" style="
-            #             display: inline-block;
-            #             background: var(--bg-gradient);
-            #             color: white;
-            #             padding: 1rem 2.5rem;
-            #             border-radius: 10px;
-            #             text-decoration: none;
-            #             font-weight: 600;
-            #             font-size: 1.1rem;
-            #             box-shadow: var(--shadow-lg);
-            #             transition: var(--transition);
-            #         " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--neon-glow)';"
-            #            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow-lg)';">
-            #             🔐 Login with Google
-            #         </a>
-            #     </div>
-            #     """,
-            #     unsafe_allow_html=True,
-            # )
             if st.button(
                 "🔐 Login with Google",
                 type="primary",
@@ -1524,20 +1615,13 @@ def render_login_page(flow):
 
 def render_main_app():
     """Render the main application interface"""
+    # Check if we need to scroll to top after page change
+    if st.session_state.get("should_scroll_to_top", False):
+        scroll_to_top()
+        st.session_state.should_scroll_to_top = False
+
     render_header()
     render_progress_indicator()
-
-    # Reset scroll on page load
-    st.markdown(
-        """
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        window.parent.document.querySelector('section.main').scrollTo(0, 0);
-    });
-    </script>
-    """,
-        unsafe_allow_html=True,
-    )
 
     # Enhanced Sidebar Navigation
     with st.sidebar:
@@ -1552,7 +1636,7 @@ def render_main_app():
         )
 
         nav_buttons = [
-            ("📝 Step 1: Details", "Onboarding", 1, True),
+            ("📋 Step 1: Details", "Onboarding", 1, True),
             (
                 "✏️ Step 2: Content",
                 "Content",
@@ -1626,7 +1710,9 @@ def render_main_app():
                 key=f"nav_{page}_{step}",
             ):
                 change_page(page, step)
+                time.sleep(0.05)
                 st.rerun()
+
     # Page Content Rendering
     if st.session_state.page == "Onboarding":
         render_onboarding_page()
@@ -1636,6 +1722,9 @@ def render_main_app():
         render_image_page()
     elif st.session_state.page == "Export":
         render_export_page()
+
+    # Add the scroll to top button at the end of the main app
+    render_scroll_to_top_button()
 
 
 # ==================== RUN APPLICATION ====================

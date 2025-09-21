@@ -1,7 +1,8 @@
 # utils/image_utils.py
+import os
 import streamlit as st
 from PIL import Image, ImageEnhance, ImageFilter
-from google import genai
+import google.generativeai as genai
 from io import BytesIO
 import logging
 from typing import Optional, Dict, Tuple, Any
@@ -133,7 +134,7 @@ class GeminiImageGenerator:
     """Handles Gemini AI image generation with optimizations."""
 
     def __init__(self):
-        self._client = None
+        self._model = None
         self._style_prompts = {
             ImageStyle.VIBRANT.value: (
                 "Create a vibrant, professional product photograph with enhanced colors. "
@@ -157,30 +158,31 @@ class GeminiImageGenerator:
         }
 
     @property
-    def client(self) -> Optional[genai.Client]:
-        """Get Gemini client with lazy initialization."""
-        if self._client is None:
+    def model(self) -> Optional[genai.GenerativeModel]:
+        """Get Gemini model with lazy initialization."""
+        if self._model is None:
             try:
                 api_key = st.secrets.get("GEMINI_API_KEY")
                 if not api_key:
                     logger.error("GEMINI_API_KEY not found in secrets")
                     return None
 
-                self._client = genai.Client(api_key=api_key)
-                logger.info("Gemini client initialized successfully")
+                genai.configure(api_key=api_key)
+                self._model = genai.GenerativeModel("gemini-2.5-flash-image-preview")
+                logger.info("Gemini model initialized successfully")
 
             except Exception as e:
-                logger.error(f"Failed to initialize Gemini client: {e}")
+                logger.error(f"Failed to initialize Gemini model: {e}")
                 return None
 
-        return self._client
+        return self._model
 
     def generate_enhanced_image(
         self, image: Image.Image, style: str
     ) -> Optional[Image.Image]:
         """Generate enhanced image using Gemini AI."""
-        if not self.client:
-            logger.error("Gemini client not available")
+        if not self.model:
+            logger.error("Gemini model not available")
             return None
 
         try:
@@ -193,10 +195,7 @@ class GeminiImageGenerator:
             start_time = time.time()
 
             with st.spinner(f"Applying {style} enhancement with AI..."):
-                response = self.client.models.generate_content(
-                    model="gemini-2.5-flash-image-preview",
-                    contents=[prompt, image],
-                )
+                response = self.model.generate_content([prompt, image])
 
             elapsed_time = time.time() - start_time
             logger.info(f"AI generation completed in {elapsed_time:.2f} seconds")
@@ -205,7 +204,7 @@ class GeminiImageGenerator:
                 logger.warning("No candidates returned from Gemini")
                 return None
 
-            # Process response
+            # Process response - use original structure
             for part in response.candidates[0].content.parts:
                 if part.inline_data and part.inline_data.data:
                     try:
@@ -237,13 +236,13 @@ def generate_enhanced_image(image_bytes: bytes, style: str) -> Optional[Image.Im
     Generate enhanced image with fallback support and caching.
 
     Args:
-        image: PIL Image object to enhance
+        image_bytes: Raw image bytes to enhance
         style: Enhancement style (Vibrant, Studio, Festive)
 
     Returns:
         Enhanced Image object or None if all methods fail
     """
-    # ✅ Convert bytes back to a PIL Image at the beginning
+    # Convert bytes back to a PIL Image at the beginning
     image = Image.open(BytesIO(image_bytes))
 
     # Validate inputs
@@ -463,25 +462,25 @@ def check_image_generation_health() -> Dict[str, bool]:
     """
     health_status = {
         "gemini_api_key": False,
-        "gemini_client": False,
+        "gemini_model": False,
         "pil_available": False,
         "overall": False,
     }
 
     # Check API key
     try:
-        api_key = st.secrets.get("GEMINI_API_KEY")
+        api_key = os.getenv("GEMINI_API_KEY", st.secrets.get("GEMINI_API_KEY"))
         health_status["gemini_api_key"] = bool(api_key)
     except Exception:
         pass
 
-    # Check Gemini client
+    # Check Gemini model
     if health_status["gemini_api_key"]:
         try:
             generator = GeminiImageGenerator()
-            health_status["gemini_client"] = generator.client is not None
+            health_status["gemini_model"] = generator.model is not None
         except Exception as e:
-            logger.warning(f"Gemini client health check failed: {e}")
+            logger.warning(f"Gemini model health check failed: {e}")
 
     # Check PIL availability
     try:

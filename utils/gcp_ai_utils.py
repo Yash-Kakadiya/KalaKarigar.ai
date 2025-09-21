@@ -1,4 +1,6 @@
 # utils/gcp_ai_utils.py
+import os
+import json
 import streamlit as st
 from google.cloud import speech, translate_v2 as translate, vision
 from google.oauth2 import service_account
@@ -10,7 +12,6 @@ from io import BytesIO
 from PIL import Image
 from contextlib import contextmanager
 import tempfile
-import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,13 +34,18 @@ class GCPCredentialsManager:
     def _load_credentials(self) -> None:
         """Load GCP credentials from Streamlit secrets."""
         try:
+            # --- THIS IS THE FIX ---
+            creds_json_str = os.getenv("GCP_SERVICE_ACCOUNT")
+            if creds_json_str:
+                creds_dict = json.loads(creds_json_str)
+            else:
+                creds_dict = st.secrets["gcp_service_account"]
+            # --- END FIX ---
+
             self._credentials = service_account.Credentials.from_service_account_info(
-                st.secrets["gcp_service_account"]
+                creds_dict
             )
             logger.info("GCP credentials loaded successfully")
-        except KeyError as e:
-            logger.error(f"Missing GCP service account key: {e}")
-            st.error(f"GCP configuration error: Missing {e}")
         except Exception as e:
             logger.error(f"Error loading GCP credentials: {e}")
             st.error(f"Error loading GCP credentials: {e}")

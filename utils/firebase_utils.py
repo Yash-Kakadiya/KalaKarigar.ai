@@ -1,4 +1,6 @@
 # utils/firebase_utils.py
+import json
+import os
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
@@ -47,9 +49,16 @@ class FirebaseManager:
             if firebase_admin._apps:
                 return firebase_admin.get_app()
 
-            creds_dict = dict(st.secrets["firebase_credentials"])
+            # --- THIS IS THE FIX ---
+            # Check for the environment variable first (for Cloud Run)
+            creds_json_str = os.getenv("FIREBASE_CREDENTIALS")
+            if creds_json_str:
+                creds_dict = json.loads(creds_json_str)
+            else:
+                # Fallback to secrets.toml for local development
+                creds_dict = dict(st.secrets["firebase_credentials"])
+            # --- END FIX ---
 
-            # Handle private key newlines
             if "\\n" in creds_dict["private_key"]:
                 creds_dict["private_key"] = creds_dict["private_key"].replace(
                     "\\n", "\n"
@@ -58,19 +67,10 @@ class FirebaseManager:
             cred = credentials.Certificate(creds_dict)
             app = firebase_admin.initialize_app(
                 cred,
-                {
-                    "storageBucket": f"{creds_dict['project_id']}.firebasestorage.app",
-                    "databaseURL": f"https://{creds_dict['project_id']}-default-rtdb.firebaseio.com/",
-                },
+                {"storageBucket": f"{creds_dict['project_id']}.firebasestorage.app"},
             )
-
             logger.info("Firebase initialized successfully")
             return app
-
-        except KeyError as e:
-            logger.error(f"Missing Firebase configuration key: {e}")
-            st.error(f"Firebase configuration error: Missing {e}")
-            return None
         except Exception as e:
             logger.error(f"Firebase initialization failed: {e}")
             st.error(f"Failed to initialize Firebase: {e}")
