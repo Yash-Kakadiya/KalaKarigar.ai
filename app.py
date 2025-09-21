@@ -217,7 +217,7 @@ def load_custom_css():
     }
     
     /* Hide Streamlit branding */
-    #MainMenu {visibility: ;} 
+    #MainMenu {visibility: ;}
     footer {visibility: hidden;}
     
     /* Main container with proper padding */
