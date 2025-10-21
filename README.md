@@ -11,7 +11,8 @@
 
 ### 🚀 Project Demo
 
-<video src="./assets/KalaKarigar-demo.mp4" controls width="100%"></video>
+[🎬 Watch Demo Video (Google Drive)](https://drive.google.com/file/d/1wCaeXdyJIYKxJvwTIy6tBZJUmT28RCa_/view?usp=sharing)
+
 
 ---
 ## 🌟 Vision
