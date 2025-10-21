@@ -228,27 +228,6 @@ docker run -p 8501:8501 kalakarigar-ai
 
 ---
 
-## 🔧 Advanced Features
-
-### **Performance Optimizations**
-- **Caching**: Streamlit caching for API calls and expensive operations
-- **Lazy Loading**: Services initialized only when needed
-- **Retry Logic**: Automatic retry for network operations with exponential backoff
-- **Fallback Systems**: Graceful degradation when AI services are unavailable
-
-### **Error Handling & Monitoring**
-- **Comprehensive Logging**: Detailed logging for debugging and monitoring
-- **Health Checks**: Built-in health monitoring for all services
-- **Graceful Failures**: User-friendly error messages with recovery suggestions
-- **Validation**: Input validation and content quality checks
-
-### **Accessibility & UX**
-- **Responsive Design**: Works seamlessly across all devices
-- **Multi-language Support**: Voice input in regional languages
-- **Progress Indicators**: Clear step-by-step progress tracking
-- **Intuitive Navigation**: Simple, artisan-friendly interface
-
----
 
 ## 📊 API Usage & Limits
 
@@ -257,33 +236,6 @@ docker run -p 8501:8501 kalakarigar-ai
 - **Google Cloud Vision**: 1,000 requests/month free tier
 - **Google Cloud Translation**: 500,000 characters/month free tier
 - **Firebase**: Generous free tier with pay-as-you-grow pricing
-
----
-
-## 🔮 Roadmap & Future Enhancements
-
-### **Phase 1: Core Platform** ✅
-- Multi-language voice input and AI content generation
-- Image enhancement and Google Drive integration
-- Secure authentication and session management
-
-### **Phase 2: Advanced Features** 🔄
-- **Batch Processing**: Handle multiple products simultaneously
-- **Template System**: Customizable content templates
-- **Analytics Dashboard**: Track content performance and engagement
-- **Advanced Image Editing**: More sophisticated image manipulation tools
-
-### **Phase 3: Ecosystem Expansion** 📋
-- **E-commerce Integration**: Direct integration with major marketplaces
-- **Community Features**: Artisan networking and collaboration tools
-- **Mobile App**: Native iOS and Android applications
-- **Marketplace**: Built-in selling platform with payment processing
-
-### **Phase 4: Scale & Sustainability** 📋
-- **Multi-tenant Architecture**: Support for craft organizations
-- **Advanced Analytics**: Market insights and trend analysis
-- **API Platform**: Third-party developer ecosystem
-- **International Expansion**: Support for artisans globally
 
 ---
 
@@ -299,18 +251,13 @@ We welcome contributions from the community! Please read our contributing guidel
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
 
 ## 👨‍💻 Creator
 
 **Yash Kakadiya**
 - 🌐 GitHub: [@Yash-Kakadiya](https://github.com/Yash-Kakadiya)
-- 💼 LinkedIn: [Yash Kakadiya](https://linkedin.com/in/yash-kakadiya)
-- 📧 Email: yashkakadiya.dev@gmail.com
+- 💼 LinkedIn: [Yash Kakadiya](https://linkedin.com/in/yash-kakadiya-)
+- 📧 Email: kakadiyayash77@gmail.com
 
 ---
 
@@ -319,16 +266,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Google Cloud Platform** for providing robust AI and cloud services
 - **Streamlit** for the excellent web app framework
 - **Firebase** for scalable backend infrastructure
-- **Indian Artisan Community** for inspiration and feedback
 
----
-
-## 📞 Support
-
-For support, feature requests, or bug reports:
-- 🐛 **Issues**: [GitHub Issues](https://github.com/Yash-Kakadiya/KalaKarigar.ai/issues)
-- 📧 **Email**: support@kalakarigar.ai
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/Yash-Kakadiya/KalaKarigar.ai/discussions)
 
 ---
 
