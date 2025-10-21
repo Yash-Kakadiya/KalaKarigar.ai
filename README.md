@@ -9,6 +9,11 @@
 
 ---
 
+### 🚀 Project Demo
+
+<video src="./assets/KalaKarigar-demo.mp4" controls width="100%"></video>
+
+---
 ## 🌟 Vision
 
 **KalaKarigar.ai** is a comprehensive AI-powered platform designed to bridge the digital divide for Indian artisans. By leveraging cutting-edge generative AI technologies, we enable craftspeople to create professional marketing content, enhance product imagery, and build a strong digital presence without requiring technical expertise.
@@ -51,6 +56,19 @@
 
 ---
 
+## 🎯 User Journey
+
+![Process Flow Diagram](assets/Process%20flow%20diagram.png)
+
+1. **🔐 Secure Login**: Google OAuth authentication with persistent sessions
+2. **📝 Product Input**: Voice recording in native language or text input
+3. **🤖 AI Processing**: Automatic transcription, translation, and content generation
+4. **🎨 Image Enhancement**: Choose from AI-powered styling options
+5. **☁️ Export**: One-click export to organized Google Drive folders
+6. **📱 Share**: Ready-to-use content for all social media platforms
+
+---
+
 ## 🏗️ Advanced Tech Stack
 
 ### **Frontend & UI**
@@ -82,6 +100,8 @@
 ---
 
 ## 📂 Project Architecture
+
+![System Architecture Diagram](assets/Architecture%20diagram.png)
 
 ```
 KalaKarigar.ai/
@@ -214,17 +234,6 @@ docker build -t kalakarigar-ai .
 # Run container
 docker run -p 8501:8501 kalakarigar-ai
 ```
-
----
-
-## 🎯 User Journey
-
-1. **🔐 Secure Login**: Google OAuth authentication with persistent sessions
-2. **📝 Product Input**: Voice recording in native language or text input
-3. **🤖 AI Processing**: Automatic transcription, translation, and content generation
-4. **🎨 Image Enhancement**: Choose from AI-powered styling options
-5. **☁️ Export**: One-click export to organized Google Drive folders
-6. **📱 Share**: Ready-to-use content for all social media platforms
 
 ---
 
